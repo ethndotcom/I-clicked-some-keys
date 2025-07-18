@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural Art Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .controls {
+            width: 320px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.1);
+        }
+
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: radial-gradient(circle at center, rgba(0, 255, 255, 0.05) 0%, transparent 70%);
+        }
+
+        #canvas {
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            box-shadow: 
+                0 0 50px rgba(0, 255, 255, 0.3),
+                inset 0 0 20px rgba(255, 255, 255, 0.05);
+            background: black;
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-group h3 {
+            margin-bottom: 15px;
+            color: #00ffff;
+            font-size: 16px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control {
+            margin-bottom: 15px;
+        }
+
+        .control label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .control input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .control input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .control select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .control select option {
+            background: #1a1a2e;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            border: none;
+            border-radius: 25px;
+            color: black;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 255, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .seed-display {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #00ffff;
+            text-align: center;
+            margin-bottom: 10px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+
+        .value-display {
+            display: inline-block;
+            float: right;
+            background: rgba(0, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            color: #00ffff;
+        }
+
+        .generation-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .generation-info h4 {
+            color: #00ffff;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .generation-info p {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            margin: 2px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="controls">
+            <div class="control-group">
+                <h3>🎨 Art Style</h3>
+                <div class="control">
+                    <label>Generation Algorithm</label>
+                    <select id="algorithm">
+                        <option value="geometric">Geometric Patterns</option>
+                        <option value="organic">Organic Shapes</option>
+                        <option value="fractal">Fractal Spirals</option>
+                        <option value="particles">Particle Systems</option>
+                        <option value="voronoi">Voronoi Cells</option>
+                        <option value="flowfield">Flow Fields</option>
+                        <option value="mandala">Digital Mandala</option>
+                        <option value="crystal">Crystal Structures</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>🎯 Complexity</h3>
+                <div class="control">
+                    <label>Density <span class="value-display" id="densityValue">50</span></label>
+                    <input type="range" id="density" min="10" max="200" value="50">
+                </div>
+                <div class="control">
+                    <label>Iterations <span class="value-display" id="iterationsValue">100</span></label>
+                    <input type="range" id="iterations" min="20" max="500" value="100">
+                </div>
+                <div class="control">
+                    <label>Detail Level <span class="value-display" id="detailValue">5</span></label>
+                    <input type="range" id="detail" min="1" max="10" value="5">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>🌈 Colors</h3>
+                <div class="control">
+                    <label>Color Scheme</label>
+                    <select id="colorScheme">
+                        <option value="neon">Neon Dreams</option>
+                        <option value="ocean">Ocean Deep</option>
+                        <option value="sunset">Sunset Vibes</option>
+                        <option value="forest">Forest Magic</option>
+                        <option value="galaxy">Galaxy Space</option>
+                        <option value="fire">Fire Elements</option>
+                        <option value="ice">Ice Crystal</option>
+                        <option value="rainbow">Rainbow Spectrum</option>
+                    </select>
+                </div>
+                <div class="control">
+                    <label>Color Intensity <span class="value-display" id="intensityValue">80</span></label>
+                    <input type="range" id="intensity" min="20" max="100" value="80">
+                </div>
+                <div class="control">
+                    <label>Transparency <span class="value-display" id="transparencyValue">70</span></label>
+                    <input type="range" id="transparency" min="10" max="100" value="70">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>⚡ Animation</h3>
+                <div class="control">
+                    <label>Animation Speed <span class="value-display" id="speedValue">30</span></label>
+                    <input type="range" id="speed" min="0" max="100" value="30">
+                </div>
+                <div class="control">
+                    <label>Rotation <span class="value-display" id="rotationValue">0</span></label>
+                    <input type="range" id="rotation" min="0" max="360" value="0">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>🎲 Generation</h3>
+                <div class="seed-display" id="seedDisplay">Seed: 12345</div>
+                <button class="btn" onclick="generateNew()">Generate New</button>
+                <button class="btn btn-secondary" onclick="randomizeSeed()">Random Seed</button>
+                <button class="btn btn-secondary" onclick="saveArtwork()">Save Artwork</button>
+                <button class="btn btn-secondary" onclick="toggleAnimation()">Toggle Animation</button>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="canvas" width="800" height="800"></canvas>
+            <div class="generation-info">
+                <h4>Generation Stats</h4>
+                <p>Elements: <span id="elementCount">0</span></p>
+                <p>Colors: <span id="colorCount">0</span></p>
+                <p>Algorithm: <span id="currentAlgorithm">Geometric</span></p>
+                <p>Render Time: <span id="renderTime">0ms</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let currentSeed = 12345;
+        let animationId;
+        let isAnimating = false;
+        let time = 0;
+        let generationStats = {
+            elements: 0,
+            colors: 0,
+            renderTime: 0
+        };
+
+        // Seeded random number generator
+        class SeededRandom {
+            constructor(seed) {
+                this.seed = seed;
+            }
+            
+            next() {
+                this.seed = (this.seed * 16807) % 2147483647;
+                return (this.seed - 1) / 2147483646;
+            }
+        }
+
+        let rng = new SeededRandom(currentSeed);
+
+        // Color schemes
+        const colorSchemes = {
+            neon: ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#8000ff'],
+            ocean: ['#0077be', '#00a8cc', '#0fa3b1', '#b5e2fa', '#f7f9fb'],
+            sunset: ['#ff6b35', '#f7931e', '#ffd23f', '#fff95b', '#c5d86d'],
+            forest: ['#2d5016', '#3e6b1f', '#4f7d28', '#60a030', '#71c139'],
+            galaxy: ['#2b1b69', '#512b8a', '#8b3aa0', '#c44569', '#f8b500'],
+            fire: ['#ff0000', '#ff4500', '#ff8c00', '#ffd700', '#ffff00'],
+            ice: ['#b8e6f2', '#a0d8e8', '#87ceeb', '#4682b4', '#191970'],
+            rainbow: ['#e40303', '#ff8c00', '#ffed00', '#008018', '#004cff', '#732982']
+        };
+
+        // Update value displays
+        function updateValueDisplays() {
+            document.getElementById('densityValue').textContent = document.getElementById('density').value;
+            document.getElementById('iterationsValue').textContent = document.getElementById('iterations').value;
+            document.getElementById('detailValue').textContent = document.getElementById('detail').value;
+            document.getElementById('intensityValue').textContent = document.getElementById('intensity').value;
+            document.getElementById('transparencyValue').textContent = document.getElementById('transparency').value;
+            document.getElementById('speedValue').textContent = document.getElementById('speed').value;
+            document.getElementById('rotationValue').textContent = document.getElementById('rotation').value;
+        }
+
+        // Add event listeners for real-time updates
+        document.querySelectorAll('input[type="range"], select').forEach(control => {
+            control.addEventListener('input', () => {
+                updateValueDisplays();
+                generateArt();
+            });
+        });
+
+        function generateNew() {
+            const startTime = performance.now();
+            
+            currentSeed = Math.floor(Math.random() * 1000000);
+            rng = new SeededRandom(currentSeed);
+            document.getElementById('seedDisplay').textContent = `Seed: ${currentSeed}`;
+            
+            generateArt();
+            
+            generationStats.renderTime = Math.round(performance.now() - startTime);
+            updateStats();
+        }
+
+        function randomizeSeed() {
+            currentSeed = Math.floor(Math.random() * 1000000);
+            rng = new SeededRandom(currentSeed);
+            document.getElementById('seedDisplay').textContent = `Seed: ${currentSeed}`;
+            generateArt();
+        }
+
+        function generateArt() {
+            const algorithm = document.getElementById('algorithm').value;
+            const density = parseInt(document.getElementById('density').value);
+            const iterations = parseInt(document.getElementById('iterations').value);
+            const detail = parseInt(document.getElementById('detail').value);
+            
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            generationStats.elements = 0;
+            
+            rng = new SeededRandom(currentSeed); // Reset RNG for consistent generation
+            
+            switch(algorithm) {
+                case 'geometric':
+                    drawGeometricPattern(density, iterations, detail);
+                    break;
+                case 'organic':
+                    drawOrganicShapes(density, iterations, detail);
+                    break;
+                case 'fractal':
+                    drawFractalSpirals(density, iterations, detail);
+                    break;
+                case 'particles':
+                    drawParticleSystem(density, iterations, detail);
+                    break;
+                case 'voronoi':
+                    drawVoronoiCells(density, iterations, detail);
+                    break;
+                case 'flowfield':
+                    drawFlowField(density, iterations, detail);
+                    break;
+                case 'mandala':
+                    drawMandala(density, iterations, detail);
+                    break;
+                case 'crystal':
+                    drawCrystalStructure(density, iterations, detail);
+                    break;
+            }
+            
+            document.getElementById('currentAlgorithm').textContent = 
+                algorithm.charAt(0).toUpperCase() + algorithm.slice(1);
+            updateStats();
+        }
+
+        function getRandomColor() {
+            const scheme = document.getElementById('colorScheme').value;
+            const colors = colorSchemes[scheme];
+            const intensity = parseInt(document.getElementById('intensity').value) / 100;
+            const transparency = parseInt(document.getElementById('transparency').value) / 100;
+            
+            const color = colors[Math.floor(rng.next() * colors.length)];
+            
+            // Convert hex to rgba with transparency
+            const r = parseInt(color.slice(1, 3), 16);
+            const g = parseInt(color.slice(3, 5), 16);
+            const b = parseInt(color.slice(5, 7), 16);
+            
+            return `rgba(${Math.floor(r * intensity)}, ${Math.floor(g * intensity)}, ${Math.floor(b * intensity)}, ${transparency})`;
+        }
+
+        function drawGeometricPattern(density, iterations, detail) {
+            for (let i = 0; i < iterations; i++) {
+                const x = rng.next() * canvas.width;
+                const y = rng.next() * canvas.height;
+                const size = rng.next() * 100 + 20;
+                const sides = Math.floor(rng.next() * detail) + 3;
+                
+                ctx.beginPath();
+                for (let j = 0; j < sides; j++) {
+                    const angle = (j / sides) * Math.PI * 2;
+                    const px = x + Math.cos(angle) * size;
+                    const py = y + Math.sin(angle) * size;
+                    
+                    if (j === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                
+                ctx.fillStyle = getRandomColor();
+                ctx.fill();
+                ctx.strokeStyle = getRandomColor();
+                ctx.lineWidth = rng.next() * 3;
+                ctx.stroke();
+                
+                generationStats.elements++;
+            }
+        }
+
+        function drawOrganicShapes(density, iterations, detail) {
+            for (let i = 0; i < iterations; i++) {
+                const x = rng.next() * canvas.width;
+                const y = rng.next() * canvas.height;
+                const size = rng.next() * 80 + 10;
+                
+                ctx.beginPath();
+                const points = detail * 3;
+                for (let j = 0; j < points; j++) {
+                    const angle = (j / points) * Math.PI * 2;
+                    const radius = size * (0.5 + rng.next() * 0.5);
+                    const px = x + Math.cos(angle) * radius;
+                    const py = y + Math.sin(angle) * radius;
+                    
+                    if (j === 0) ctx.moveTo(px, py);
+                    else ctx.quadraticCurveTo(px + rng.next() * 20 - 10, py + rng.next() * 20 - 10, px, py);
+                }
+                ctx.closePath();
+                
+                ctx.fillStyle = getRandomColor();
+                ctx.fill();
+                
+                generationStats.elements++;
+            }
+        }
+
+        function drawFractalSpirals(density, iterations, detail) {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            for (let i = 0; i < iterations; i++) {
+                const startAngle = rng.next() * Math.PI * 2;
+                const spirals = detail;
+                
+                ctx.beginPath();
+                ctx.strokeStyle = getRandomColor();
+                ctx.lineWidth = rng.next() * 3 + 1;
+                
+                for (let j = 0; j < spirals * 50; j++) {
+                    const t = j / 10;
+                    const angle = startAngle + t * 0.1;
+                    const radius = t * 2;
+                    const x = centerX + Math.cos(angle) * radius;
+                    const y = centerY + Math.sin(angle) * radius;
+                    
+                    if (j === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                
+                generationStats.elements++;
+            }
+        }
+
+        function drawParticleSystem(density, iterations, detail) {
+            for (let i = 0; i < iterations; i++) {
+                const centerX = rng.next() * canvas.width;
+                const centerY = rng.next() * canvas.height;
+                const particles = detail * 10;
+                
+                for (let j = 0; j < particles; j++) {
+                    const angle = rng.next() * Math.PI * 2;
+                    const distance = rng.next() * 100;
+                    const x = centerX + Math.cos(angle) * distance;
+                    const y = centerY + Math.sin(angle) * distance;
+                    const size = rng.next() * 8 + 2;
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, size, 0, Math.PI * 2);
+                    ctx.fillStyle = getRandomColor();
+                    ctx.fill();
+                    
+                    // Draw connection lines
+                    if (j > 0 && rng.next() > 0.7) {
+                        ctx.beginPath();
+                        ctx.moveTo(centerX, centerY);
+                        ctx.lineTo(x, y);
+                        ctx.strokeStyle = getRandomColor();
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    }
+                }
+                
+                generationStats.elements++;
+            }
+        }
+
+        function drawVoronoiCells(density, iterations, detail) {
+            const points = [];
+            for (let i = 0; i < density; i++) {
+                points.push({
+                    x: rng.next() * canvas.width,
+                    y: rng.next() * canvas.height,
+                    color: getRandomColor()
+                });
+            }
+            
+            const imageData = ctx.createImageData(canvas.width, canvas.height);
+            
+            for (let x = 0; x < canvas.width; x += 2) {
+                for (let y = 0; y < canvas.height; y += 2) {
+                    let minDist = Infinity;
+                    let closestPoint = points[0];
+                    
+                    for (const point of points) {
+                        const dist = Math.sqrt((x - point.x) ** 2 + (y - point.y) ** 2);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closestPoint = point;
+                        }
+                    }
+                    
+                    // Draw pixel with closest point's color
+                    const color = closestPoint.color;
+                    const rgba = color.match(/\d+/g);
+                    const index = (y * canvas.width + x) * 4;
+                    
+                    if (rgba && index < imageData.data.length) {
+                        imageData.data[index] = parseInt(rgba[0]);     // Red
+                        imageData.data[index + 1] = parseInt(rgba[1]); // Green
+                        imageData.data[index + 2] = parseInt(rgba[2]); // Blue
+                        imageData.data[index + 3] = 255; // Alpha
+                    }
+                }
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            generationStats.elements = points.length;
+        }
+
+        function drawFlowField(density, iterations, detail) {
+            const cols = 40;
+            const rows = 40;
+            const scl = canvas.width / cols;
+            
+            for (let i = 0; i < iterations; i++) {
+                let x = rng.next() * canvas.width;
+                let y = rng.next() * canvas.height;
+                
+                ctx.beginPath();
+                ctx.strokeStyle = getRandomColor();
+                ctx.lineWidth = 2;
+                ctx.moveTo(x, y);
+                
+                for (let j = 0; j < detail * 20; j++) {
+                    const col = Math.floor(x / scl);
+                    const row = Math.floor(y / scl);
+                    
+                    const angle = (col + row + rng.next()) * 0.01;
+                    
+                    x += Math.cos(angle) * 2;
+                    y += Math.sin(angle) * 2;
+                    
+                    ctx.lineTo(x, y);
+                    
+                    if (x < 0 || x > canvas.width || y < 0 || y > canvas.height) break;
+                }
+                
+                ctx.stroke();
+                generationStats.elements++;
+            }
+        }
+
+        function drawMandala(density, iterations, detail) {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const layers = detail;
+            
+            for (let layer = 0; layer < layers; layer++) {
+                const radius = (layer + 1) * 60;
+                const points = iterations / layers;
+                
+                for (let i = 0; i < points; i++) {
+                    const angle = (i / points) * Math.PI * 2;
+                    const x = centerX + Math.cos(angle) * radius;
+                    const y = centerY + Math.sin(angle) * radius;
+                    
+                    // Draw petal shape
+                    ctx.beginPath();
+                    const petalSize = 20 + layer * 5;
+                    
+                    for (let j = 0; j < 8; j++) {
+                        const petalAngle = angle + (j / 8) * Math.PI * 2;
+                        const px = x + Math.cos(petalAngle) * petalSize;
+                        const py = y + Math.sin(petalAngle) * petalSize;
+                        
+                        if (j === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    
+                    ctx.closePath();
+                    ctx.fillStyle = getRandomColor();
+                    ctx.fill();
+                    ctx.strokeStyle = getRandomColor();
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+                
+                generationStats.elements++;
+            }
+        }
+
+        function drawCrystalStructure(density, iterations, detail) {
+            for (let i = 0; i < iterations; i++) {
+                const x = rng.next() * canvas.width;
+                const y = rng.next() * canvas.height;
+                const size = rng.next() * 60 + 20;
+                const facets = detail + 3;
+                
+                // Draw crystal with multiple facets
+                for (let layer = 0; layer < 3; layer++) {
+                    ctx.beginPath();
+                    const layerSize = size * (1 - layer * 0.2);
+                    
+                    for (let j = 0; j < facets; j++) {
+                        const angle = (j / facets) * Math.PI * 2 + layer * 0.2;
+                        const px = x + Math.cos(angle) * layerSize;
+                        const py = y + Math.sin(angle) * layerSize;
+                        
+                        if (j === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    
+                    ctx.closePath();
+                    ctx.fillStyle = getRandomColor();
+                    ctx.fill();
+                    ctx.strokeStyle = getRandomColor();
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+                
+                generationStats.elements++;
+            }
+        }
+
+        function saveArtwork() {
+            const link = document.createElement('a');
+            link.download = `procedural-art-${currentSeed}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        function toggleAnimation() {
+            if (isAnimating) {
+                cancelAnimationFrame(animationId);
+                isAnimating = false;
+            } else {
+                isAnimating = true;
+                animate();
+            }
+        }
+
+        function animate() {
+            if (!isAnimating) return;
+            
+            time += parseInt(document.getElementById('speed').value) / 1000;
+            
+            // Apply rotation if enabled
+            const rotation = parseInt(document.getElementById('rotation').value);
+            if (rotation > 0) {
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate((time * rotation * Math.PI) / 180);
+                ctx.translate(-canvas.width / 2, -canvas.height / 2);
+            }
+            
+            generateArt();
+            
+            if (rotation > 0) {
+                ctx.restore();
+            }
+            
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function updateStats() {
+            document.getElementById('elementCount').textContent = generationStats.elements;
+            document.getElementById('colorCount').textContent = colorSchemes[document.getElementById('colorScheme').value].length;
+            document.getElementById('renderTime').textContent = generationStats.renderTime + 'ms';
+        }
+
+        // Initialize
+        updateValueDisplays();
+        generateArt();
+        updateStats();
+    </script>
+</body>
+</html>
