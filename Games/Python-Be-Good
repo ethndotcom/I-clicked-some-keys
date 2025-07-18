@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Python Be Good - A game to practice Python programming skills
-Inspired by ThePrimeagen's vim-be-good
+Python Be Good - Enhanced Technical Coding Game
+Practice Python programming with hands-on coding challenges
 """
 
 import random
 import time
 import os
 import sys
-from typing import List, Dict, Any, Callable
+from typing import List, Dict, Any, Callable, Optional
 from dataclasses import dataclass
 from enum import Enum
 
@@ -24,12 +24,23 @@ class GameResult:
     correct: bool
     time_taken: float
     attempts: int
+    hints_used: int
+
+@dataclass
+class Challenge:
+    description: str
+    detailed_requirements: str
+    hints: List[str]
+    solution: str
+    test_cases: List[tuple]
+    expected_output: Any = None
 
 class PythonBeGood:
     def __init__(self):
         self.score = 0
         self.total_games = 0
         self.difficulty = Difficulty.EASY
+        self.current_hints_used = 0
         
     def clear_screen(self):
         """Clear the terminal screen"""
@@ -40,7 +51,7 @@ class PythonBeGood:
         banner = """
 ╔═══════════════════════════════════════╗
 ║           PYTHON BE GOOD              ║
-║     Practice Python Programming      ║
+║   Technical Python Coding Practice   ║
 ╚═══════════════════════════════════════╝
         """
         print(banner)
@@ -50,19 +61,19 @@ class PythonBeGood:
     def show_menu(self) -> str:
         """Show main menu and get user choice"""
         options = {
-            "1": "List Comprehension Challenge",
-            "2": "Dictionary Manipulation",
-            "3": "String Operations",
-            "4": "Function Writing",
-            "5": "Data Structure Quiz",
-            "6": "Algorithm Challenge",
-            "7": "Bug Hunt",
+            "1": "List Comprehension Mastery",
+            "2": "Dictionary & Data Manipulation",
+            "3": "String Processing & Regex",
+            "4": "Function Implementation",
+            "5": "Algorithm & Logic Challenges",
+            "6": "Bug Detection & Fixing",
+            "7": "Data Structure Operations",
             "8": "Change Difficulty",
             "9": "View Stats",
             "q": "Quit"
         }
         
-        print("\nChoose your challenge:")
+        print("\nChoose your technical challenge:")
         for key, value in options.items():
             print(f"{key}. {value}")
         
@@ -93,40 +104,36 @@ class PythonBeGood:
     def get_time_limit(self) -> float:
         """Get time limit based on difficulty"""
         limits = {
-            Difficulty.NOOB: 120.0,
-            Difficulty.EASY: 60.0,
-            Difficulty.MEDIUM: 30.0,
-            Difficulty.HARD: 20.0,
-            Difficulty.NIGHTMARE: 10.0
+            Difficulty.NOOB: 180.0,
+            Difficulty.EASY: 120.0,
+            Difficulty.MEDIUM: 60.0,
+            Difficulty.HARD: 30.0,
+            Difficulty.NIGHTMARE: 15.0
         }
         return limits[self.difficulty]
     
-    def list_comprehension_challenge(self) -> GameResult:
-        """Challenge user to write list comprehensions"""
-        challenges = [
-            {
-                "description": "Create a list of squares for numbers 1-10",
-                "solution": "[x**2 for x in range(1, 11)]",
-                "test_data": list(range(1, 11)),
-                "expected": [x**2 for x in range(1, 11)]
-            },
-            {
-                "description": "Filter even numbers from [1,2,3,4,5,6,7,8,9,10]",
-                "solution": "[x for x in range(1, 11) if x % 2 == 0]",
-                "test_data": list(range(1, 11)),
-                "expected": [x for x in range(1, 11) if x % 2 == 0]
-            },
-            {
-                "description": "Convert ['hello', 'world'] to uppercase",
-                "solution": "[word.upper() for word in ['hello', 'world']]",
-                "test_data": ['hello', 'world'],
-                "expected": ['HELLO', 'WORLD']
-            }
-        ]
+    def show_hint(self, hints: List[str]) -> bool:
+        """Show a hint to the user"""
+        if self.current_hints_used >= len(hints):
+            print("No more hints available!")
+            return False
         
-        challenge = random.choice(challenges)
-        print(f"\nChallenge: {challenge['description']}")
-        print("Write a list comprehension:")
+        print(f"\n💡 HINT {self.current_hints_used + 1}: {hints[self.current_hints_used]}")
+        self.current_hints_used += 1
+        return True
+    
+    def execute_challenge(self, challenge: Challenge) -> GameResult:
+        """Execute a coding challenge with hint system"""
+        self.current_hints_used = 0
+        
+        print(f"\n{challenge.description}")
+        print("=" * 50)
+        print(challenge.detailed_requirements)
+        print("\nCommands:")
+        print("- Type 'hint' for a hint")
+        print("- Type 'quit' to give up")
+        print("- Enter your Python code to test it")
+        print("-" * 50)
         
         attempts = 0
         start_time = time.time()
@@ -138,340 +145,454 @@ class PythonBeGood:
             remaining = time_limit - elapsed
             
             if remaining <= 0:
-                print(f"\nTime's up! The answer was: {challenge['solution']}")
-                return GameResult(False, elapsed, attempts)
+                print(f"\n⏰ Time's up! Here's the solution:")
+                print(f"```python\n{challenge.solution}\n```")
+                return GameResult(False, elapsed, attempts, self.current_hints_used)
             
-            print(f"\nTime remaining: {remaining:.1f}s")
-            user_input = input("Your answer: ").strip()
+            print(f"\n⏱️  Time remaining: {remaining:.1f}s | Attempt: {attempts}")
+            user_input = input(">>> ").strip()
+            
+            if user_input.lower() == 'hint':
+                self.show_hint(challenge.hints)
+                continue
+            elif user_input.lower() == 'quit':
+                print(f"\n🏳️  Solution:")
+                print(f"```python\n{challenge.solution}\n```")
+                return GameResult(False, elapsed, attempts, self.current_hints_used)
             
             try:
-                # Safely evaluate the user's list comprehension
-                result = eval(user_input)
-                if result == challenge['expected']:
+                # Test the user's code
+                if self.test_code(user_input, challenge):
                     elapsed = time.time() - start_time
-                    print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
-                    return GameResult(True, elapsed, attempts)
-                else:
-                    print(f"Incorrect result. Expected: {challenge['expected']}, Got: {result}")
+                    print(f"\n🎉 CORRECT! Time: {elapsed:.2f}s, Attempts: {attempts}, Hints: {self.current_hints_used}")
+                    return GameResult(True, elapsed, attempts, self.current_hints_used)
+                    
             except Exception as e:
-                print(f"Error in your code: {e}")
+                print(f"❌ Error in your code: {e}")
+                print("Check your syntax and try again!")
     
-    def dictionary_challenge(self) -> GameResult:
-        """Challenge user with dictionary operations"""
-        challenges = [
-            {
-                "description": "Create a dict mapping numbers 1-5 to their squares",
-                "solution": "{x: x**2 for x in range(1, 6)}",
-                "expected": {x: x**2 for x in range(1, 6)}
-            },
-            {
-                "description": "Merge two dicts: {'a': 1, 'b': 2} and {'c': 3, 'd': 4}",
-                "solution": "{**{'a': 1, 'b': 2}, **{'c': 3, 'd': 4}}",
-                "expected": {'a': 1, 'b': 2, 'c': 3, 'd': 4}
-            },
-            {
-                "description": "Get values for keys ['a', 'c'] from {'a': 1, 'b': 2, 'c': 3}",
-                "solution": "[{'a': 1, 'b': 2, 'c': 3}[key] for key in ['a', 'c']]",
-                "expected": [1, 3]
-            }
-        ]
-        
-        challenge = random.choice(challenges)
-        print(f"\nChallenge: {challenge['description']}")
-        print("Write Python code:")
-        
-        attempts = 0
-        start_time = time.time()
-        time_limit = self.get_time_limit()
-        
-        while True:
-            attempts += 1
-            elapsed = time.time() - start_time
-            remaining = time_limit - elapsed
-            
-            if remaining <= 0:
-                print(f"\nTime's up! The answer was: {challenge['solution']}")
-                return GameResult(False, elapsed, attempts)
-            
-            print(f"\nTime remaining: {remaining:.1f}s")
-            user_input = input("Your answer: ").strip()
-            
-            try:
-                result = eval(user_input)
-                if result == challenge['expected']:
-                    elapsed = time.time() - start_time
-                    print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
-                    return GameResult(True, elapsed, attempts)
-                else:
-                    print(f"Incorrect result. Expected: {challenge['expected']}, Got: {result}")
-            except Exception as e:
-                print(f"Error in your code: {e}")
-    
-    def string_challenge(self) -> GameResult:
-        """Challenge user with string operations"""
-        challenges = [
-            {
-                "description": "Reverse the string 'python'",
-                "solution": "'python'[::-1]",
-                "expected": "nohtyp"
-            },
-            {
-                "description": "Count vowels in 'programming'",
-                "solution": "sum(1 for char in 'programming' if char.lower() in 'aeiou')",
-                "expected": 3
-            },
-            {
-                "description": "Join ['Hello', 'World'] with '-'",
-                "solution": "'-'.join(['Hello', 'World'])",
-                "expected": "Hello-World"
-            },
-            {
-                "description": "Remove spaces from ' hello world '",
-                "solution": "' hello world '.replace(' ', '')",
-                "expected": "helloworld"
-            }
-        ]
-        
-        challenge = random.choice(challenges)
-        print(f"\nChallenge: {challenge['description']}")
-        print("Write Python code:")
-        
-        attempts = 0
-        start_time = time.time()
-        time_limit = self.get_time_limit()
-        
-        while True:
-            attempts += 1
-            elapsed = time.time() - start_time
-            remaining = time_limit - elapsed
-            
-            if remaining <= 0:
-                print(f"\nTime's up! The answer was: {challenge['solution']}")
-                return GameResult(False, elapsed, attempts)
-            
-            print(f"\nTime remaining: {remaining:.1f}s")
-            user_input = input("Your answer: ").strip()
-            
-            try:
-                result = eval(user_input)
-                if result == challenge['expected']:
-                    elapsed = time.time() - start_time
-                    print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
-                    return GameResult(True, elapsed, attempts)
-                else:
-                    print(f"Incorrect result. Expected: {challenge['expected']}, Got: {result}")
-            except Exception as e:
-                print(f"Error in your code: {e}")
-    
-    def function_challenge(self) -> GameResult:
-        """Challenge user to write functions"""
-        challenges = [
-            {
-                "description": "Write a function that returns the sum of two numbers",
-                "test_cases": [(3, 5, 8), (10, -2, 8), (0, 0, 0)],
-                "solution": "def add(a, b): return a + b"
-            },
-            {
-                "description": "Write a function that checks if a number is even",
-                "test_cases": [(4, True), (7, False), (0, True)],
-                "solution": "def is_even(n): return n % 2 == 0"
-            },
-            {
-                "description": "Write a function that finds the maximum in a list",
-                "test_cases": [([1, 3, 2], 3), ([5, 1, 9, 3], 9), ([-1, -5, -2], -1)],
-                "solution": "def find_max(lst): return max(lst)"
-            }
-        ]
-        
-        challenge = random.choice(challenges)
-        print(f"\nChallenge: {challenge['description']}")
-        print("Write a function definition:")
-        
-        attempts = 0
-        start_time = time.time()
-        time_limit = self.get_time_limit() * 2  # Functions get more time
-        
-        while True:
-            attempts += 1
-            elapsed = time.time() - start_time
-            remaining = time_limit - elapsed
-            
-            if remaining <= 0:
-                print(f"\nTime's up! Example solution: {challenge['solution']}")
-                return GameResult(False, elapsed, attempts)
-            
-            print(f"\nTime remaining: {remaining:.1f}s")
-            user_input = input("Your function: ").strip()
-            
-            try:
-                # Execute the function definition
+    def test_code(self, user_code: str, challenge: Challenge) -> bool:
+        """Test user's code against challenge requirements"""
+        try:
+            if challenge.test_cases:
+                # For function challenges
                 local_vars = {}
-                exec(user_input, {}, local_vars)
+                exec(user_code, {}, local_vars)
                 
-                # Test the function
-                all_correct = True
+                if not local_vars:
+                    print("❌ No function defined!")
+                    return False
+                
+                # Get the function
                 func_name = list(local_vars.keys())[0]
                 func = local_vars[func_name]
                 
-                for test_case in challenge['test_cases']:
-                    if len(test_case) == 3:  # Two args, one result
-                        arg1, arg2, expected = test_case
-                        result = func(arg1, arg2)
-                    else:  # One arg, one result
-                        arg, expected = test_case
-                        result = func(arg)
+                # Test all cases
+                for i, test_case in enumerate(challenge.test_cases):
+                    if len(test_case) == 2:
+                        input_val, expected = test_case
+                        if isinstance(input_val, tuple):
+                            result = func(*input_val)
+                        else:
+                            result = func(input_val)
+                    else:
+                        *inputs, expected = test_case
+                        result = func(*inputs)
                     
                     if result != expected:
-                        print(f"Test failed: Expected {expected}, got {result}")
-                        all_correct = False
-                        break
+                        print(f"❌ Test case {i+1} failed:")
+                        print(f"   Input: {test_case[:-1]}")
+                        print(f"   Expected: {expected}")
+                        print(f"   Got: {result}")
+                        return False
                 
-                if all_correct:
-                    elapsed = time.time() - start_time
-                    print(f"\nAll tests passed! Time: {elapsed:.2f}s, Attempts: {attempts}")
-                    return GameResult(True, elapsed, attempts)
-                    
-            except Exception as e:
-                print(f"Error in your code: {e}")
-    
-    def quiz_challenge(self) -> GameResult:
-        """Multiple choice quiz about Python concepts"""
-        questions = [
-            {
-                "question": "What does 'len([1, 2, 3])' return?",
-                "options": ["A) 6", "B) 3", "C) [1, 2, 3]", "D) Error"],
-                "answer": "B"
-            },
-            {
-                "question": "What is the result of '2 ** 3'?",
-                "options": ["A) 5", "B) 6", "C) 8", "D) 9"],
-                "answer": "C"
-            },
-            {
-                "question": "Which creates a dictionary?",
-                "options": ["A) []", "B) ()", "C) {}", "D) set()"],
-                "answer": "C"
-            },
-            {
-                "question": "What does 'range(3)' produce?",
-                "options": ["A) [1, 2, 3]", "B) [0, 1, 2]", "C) [0, 1, 2, 3]", "D) 3"],
-                "answer": "B"
-            }
-        ]
-        
-        question = random.choice(questions)
-        print(f"\nQuestion: {question['question']}")
-        for option in question['options']:
-            print(option)
-        
-        attempts = 0
-        start_time = time.time()
-        time_limit = self.get_time_limit() / 2  # Quiz gets less time
-        
-        while True:
-            attempts += 1
-            elapsed = time.time() - start_time
-            remaining = time_limit - elapsed
-            
-            if remaining <= 0:
-                print(f"\nTime's up! The answer was: {question['answer']}")
-                return GameResult(False, elapsed, attempts)
-            
-            print(f"\nTime remaining: {remaining:.1f}s")
-            user_input = input("Your answer (A/B/C/D): ").strip().upper()
-            
-            if user_input == question['answer']:
-                elapsed = time.time() - start_time
-                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
-                return GameResult(True, elapsed, attempts)
-            elif user_input in ['A', 'B', 'C', 'D']:
-                print("Incorrect! Try again.")
+                print("✅ All test cases passed!")
+                return True
             else:
-                print("Please enter A, B, C, or D")
+                # For expression challenges
+                result = eval(user_code)
+                if result == challenge.expected_output:
+                    print(f"✅ Correct! Result: {result}")
+                    return True
+                else:
+                    print(f"❌ Expected: {challenge.expected_output}, Got: {result}")
+                    return False
+                    
+        except Exception as e:
+            raise e
     
-    def algorithm_challenge(self) -> GameResult:
-        """Simple algorithm challenges"""
+    def list_comprehension_challenge(self) -> GameResult:
+        """Advanced list comprehension challenges"""
         challenges = [
-            {
-                "description": "Find the sum of all numbers from 1 to 10",
-                "solution": "sum(range(1, 11))",
-                "expected": 55
-            },
-            {
-                "description": "Count how many times 'a' appears in 'banana'",
-                "solution": "'banana'.count('a')",
-                "expected": 3
-            },
-            {
-                "description": "Find the factorial of 5 (5!)",
-                "solution": "5 * 4 * 3 * 2 * 1",
-                "expected": 120
-            }
+            Challenge(
+                description="🔥 NESTED LIST FLATTENING",
+                detailed_requirements="""
+Write a list comprehension that flattens a nested list structure.
+
+Given: nested_list = [[1, 2], [3, 4, 5], [6]]
+Goal: Create a flat list [1, 2, 3, 4, 5, 6]
+
+Requirements:
+- Must use list comprehension
+- Should work for any nested list structure (one level deep)
+- Your code should handle the variable 'nested_list'
+                """,
+                hints=[
+                    "Think about iterating through each sublist, then through each item",
+                    "Use nested for loops in your comprehension: [item for sublist in ... for item in ...]",
+                    "The syntax is: [item for sublist in nested_list for item in sublist]"
+                ],
+                solution="[item for sublist in nested_list for item in sublist]",
+                test_cases=[],
+                expected_output=[1, 2, 3, 4, 5, 6]
+            ),
+            Challenge(
+                description="🎯 CONDITIONAL FILTERING WITH TRANSFORMATION",
+                detailed_requirements="""
+Create a list comprehension that processes a list of numbers.
+
+Given: numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+Goal: Get squares of even numbers only
+
+Requirements:
+- Use list comprehension with conditional
+- Square each number that is even
+- Filter out odd numbers completely
+- Result should be [4, 16, 36, 64, 100]
+                """,
+                hints=[
+                    "Use 'if' condition at the end of comprehension to filter",
+                    "Apply transformation (squaring) before the conditional",
+                    "Structure: [x**2 for x in numbers if condition]"
+                ],
+                solution="[x**2 for x in numbers if x % 2 == 0]",
+                test_cases=[],
+                expected_output=[4, 16, 36, 64, 100]
+            )
         ]
         
         challenge = random.choice(challenges)
-        print(f"\nChallenge: {challenge['description']}")
-        print("Write Python code that calculates this:")
         
-        attempts = 0
-        start_time = time.time()
-        time_limit = self.get_time_limit()
+        # Set up the test environment
+        if "nested_list" in challenge.detailed_requirements:
+            exec("nested_list = [[1, 2], [3, 4, 5], [6]]", globals())
+        elif "numbers" in challenge.detailed_requirements:
+            exec("numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]", globals())
         
-        while True:
-            attempts += 1
-            elapsed = time.time() - start_time
-            remaining = time_limit - elapsed
-            
-            if remaining <= 0:
-                print(f"\nTime's up! Example solution: {challenge['solution']}")
-                return GameResult(False, elapsed, attempts)
-            
-            print(f"\nTime remaining: {remaining:.1f}s")
-            user_input = input("Your answer: ").strip()
-            
-            try:
-                result = eval(user_input)
-                if result == challenge['expected']:
-                    elapsed = time.time() - start_time
-                    print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
-                    return GameResult(True, elapsed, attempts)
-                else:
-                    print(f"Incorrect result. Expected: {challenge['expected']}, Got: {result}")
-            except Exception as e:
-                print(f"Error in your code: {e}")
+        return self.execute_challenge(challenge)
     
-    def bug_hunt_challenge(self) -> GameResult:
-        """Find and fix bugs in Python code"""
-        bugs = [
-            {
-                "description": "Fix this code to print 'Hello World'",
-                "buggy_code": "print('Hello World'",
-                "fixed_code": "print('Hello World')",
-                "explanation": "Missing closing parenthesis"
-            },
-            {
-                "description": "Fix this list append",
-                "buggy_code": "lst = [1, 2, 3]\nlst.append[4]",
-                "fixed_code": "lst = [1, 2, 3]\nlst.append(4)",
-                "explanation": "append() uses parentheses, not square brackets"
-            },
-            {
-                "description": "Fix this dictionary access",
-                "buggy_code": "d = {'a': 1}\nprint(d['b'])",
-                "fixed_code": "d = {'a': 1}\nprint(d.get('b', 'Key not found'))",
-                "explanation": "Key 'b' doesn't exist, use .get() or add the key"
-            }
+    def dictionary_challenge(self) -> GameResult:
+        """Advanced dictionary manipulation challenges"""
+        challenges = [
+            Challenge(
+                description="🗂️  DICTIONARY INVERSION WITH GROUPING",
+                detailed_requirements="""
+Write code to invert a dictionary where values become keys and keys become values.
+Handle cases where multiple keys have the same value by grouping them.
+
+Given: data = {'a': 1, 'b': 2, 'c': 1, 'd': 3, 'e': 2}
+Goal: {1: ['a', 'c'], 2: ['b', 'e'], 3: ['d']}
+
+Requirements:
+- Invert key-value pairs
+- Group original keys that had the same value
+- Values should be lists of keys
+- Use dictionary comprehension or combination of dict operations
+                """,
+                hints=[
+                    "You need to group keys by their values first",
+                    "Consider using a loop to build groups, or use dict comprehension with a helper",
+                    "One approach: {v: [k for k, val in data.items() if val == v] for v in set(data.values())}"
+                ],
+                solution="{v: [k for k, val in data.items() if val == v] for v in set(data.values())}",
+                test_cases=[],
+                expected_output={1: ['a', 'c'], 2: ['b', 'e'], 3: ['d']}
+            ),
+            Challenge(
+                description="🔄 NESTED DICTIONARY PROCESSING",
+                detailed_requirements="""
+Extract and transform data from a nested dictionary structure.
+
+Given: students = {
+    'math': {'alice': 85, 'bob': 92},
+    'science': {'alice': 78, 'bob': 88, 'charlie': 95}
+}
+
+Goal: Create a student-centered view with average scores
+Result: {'alice': 81.5, 'bob': 90.0, 'charlie': 95.0}
+
+Requirements:
+- Calculate average score per student across all subjects
+- Handle students who don't have scores in all subjects
+- Use dictionary comprehension or dict operations
+                """,
+                hints=[
+                    "First, collect all unique student names across all subjects",
+                    "For each student, find all their scores across subjects",
+                    "Calculate average of their scores"
+                ],
+                solution="{ student: sum(subject_scores[student] for subject_scores in students.values() if student in subject_scores) / sum(1 for subject_scores in students.values() if student in subject_scores) for student in set().union(*[subject_scores.keys() for subject_scores in students.values()]) }",
+                test_cases=[],
+                expected_output={'alice': 81.5, 'bob': 90.0, 'charlie': 95.0}
+            )
         ]
         
-        bug = random.choice(bugs)
-        print(f"\nBug Hunt: {bug['description']}")
-        print("Buggy code:")
-        print(bug['buggy_code'])
-        print("\nWrite the fixed version:")
+        challenge = random.choice(challenges)
         
+        # Set up test environment
+        if "data" in challenge.detailed_requirements:
+            exec("data = {'a': 1, 'b': 2, 'c': 1, 'd': 3, 'e': 2}", globals())
+        elif "students" in challenge.detailed_requirements:
+            exec("students = {'math': {'alice': 85, 'bob': 92}, 'science': {'alice': 78, 'bob': 88, 'charlie': 95}}", globals())
+        
+        return self.execute_challenge(challenge)
+    
+    def string_challenge(self) -> GameResult:
+        """Advanced string processing challenges"""
+        challenges = [
+            Challenge(
+                description="📝 ADVANCED STRING PARSING",
+                detailed_requirements="""
+Parse and extract information from a formatted string.
+
+Given: log_entry = "2024-01-15 14:30:22 ERROR user_id=12345 action=login message='Invalid password attempt'"
+Goal: Extract into dictionary: {
+    'timestamp': '2024-01-15 14:30:22',
+    'level': 'ERROR',
+    'user_id': '12345',
+    'action': 'login',
+    'message': 'Invalid password attempt'
+}
+
+Requirements:
+- Parse the log entry string
+- Extract all key-value pairs
+- Handle quoted values correctly
+- Return as a dictionary
+                """,
+                hints=[
+                    "Split the string into parts and process each part",
+                    "Use string methods like split(), strip(), and slice notation",
+                    "For quoted values, you'll need to handle the quotes specially"
+                ],
+                solution="{'timestamp': log_entry[:19], 'level': log_entry.split()[2], 'user_id': log_entry.split('user_id=')[1].split()[0], 'action': log_entry.split('action=')[1].split()[0], 'message': log_entry.split(\"message='\")[1].rstrip(\"'\")}",
+                test_cases=[],
+                expected_output={
+                    'timestamp': '2024-01-15 14:30:22',
+                    'level': 'ERROR', 
+                    'user_id': '12345',
+                    'action': 'login',
+                    'message': 'Invalid password attempt'
+                }
+            )
+        ]
+        
+        challenge = random.choice(challenges)
+        exec("log_entry = \"2024-01-15 14:30:22 ERROR user_id=12345 action=login message='Invalid password attempt'\"", globals())
+        
+        return self.execute_challenge(challenge)
+    
+    def function_challenge(self) -> GameResult:
+        """Advanced function implementation challenges"""
+        challenges = [
+            Challenge(
+                description="⚡ RECURSIVE FUNCTION IMPLEMENTATION",
+                detailed_requirements="""
+Implement a recursive function to calculate the nth Fibonacci number.
+
+Function signature: fibonacci(n)
+
+Requirements:
+- Must use recursion (not loops)
+- Handle base cases: fibonacci(0) = 0, fibonacci(1) = 1
+- For n > 1: fibonacci(n) = fibonacci(n-1) + fibonacci(n-2)
+- Should work for reasonable values of n
+
+Test cases will verify correctness for multiple inputs.
+                """,
+                hints=[
+                    "Define base cases first: if n == 0 return 0, if n == 1 return 1",
+                    "For other cases, return the sum of the two previous fibonacci numbers",
+                    "def fibonacci(n): return 0 if n == 0 else 1 if n == 1 else fibonacci(n-1) + fibonacci(n-2)"
+                ],
+                solution="def fibonacci(n):\n    if n == 0:\n        return 0\n    elif n == 1:\n        return 1\n    else:\n        return fibonacci(n-1) + fibonacci(n-2)",
+                test_cases=[
+                    (0, 0), (1, 1), (2, 1), (3, 2), (4, 3), (5, 5), (6, 8)
+                ]
+            ),
+            Challenge(
+                description="🔧 HIGHER-ORDER FUNCTION",
+                detailed_requirements="""
+Create a function that takes another function and a list, applies the function to each element,
+and returns only the results that are greater than a threshold.
+
+Function signature: filter_and_transform(func, data, threshold)
+
+Requirements:
+- Apply 'func' to each element in 'data'
+- Keep only results greater than 'threshold'
+- Return as a list
+- Example: filter_and_transform(lambda x: x**2, [1,2,3,4,5], 10) → [16, 25]
+
+The function should be generic and work with any function and data.
+                """,
+                hints=[
+                    "Use a list comprehension with filtering",
+                    "Apply the function first, then check if result > threshold",
+                    "Structure: [func(x) for x in data if func(x) > threshold]"
+                ],
+                solution="def filter_and_transform(func, data, threshold):\n    return [func(x) for x in data if func(x) > threshold]",
+                test_cases=[
+                    ((lambda x: x**2, [1,2,3,4,5], 10), [16, 25]),
+                    ((lambda x: x*3, [1,2,3,4], 5), [9, 12]),
+                    ((lambda x: x+10, [1,2,3], 12), [13])
+                ]
+            )
+        ]
+        
+        return self.execute_challenge(random.choice(challenges))
+    
+    def algorithm_challenge(self) -> GameResult:
+        """Complex algorithmic challenges"""
+        challenges = [
+            Challenge(
+                description="🧮 ALGORITHM: TWO SUM PROBLEM",
+                detailed_requirements="""
+Implement a function that finds two numbers in a list that add up to a target sum.
+
+Function signature: two_sum(nums, target)
+
+Requirements:
+- Return indices of the two numbers that add up to target
+- You may assume exactly one solution exists
+- Don't use the same element twice
+- Example: two_sum([2, 7, 11, 15], 9) → [0, 1] (because nums[0] + nums[1] = 2 + 7 = 9)
+
+Optimize for time complexity if possible.
+                """,
+                hints=[
+                    "Try the brute force approach first: nested loops checking all pairs",
+                    "For each number, check if (target - number) exists in the remaining list",
+                    "Use enumerate() to get both index and value"
+                ],
+                solution="def two_sum(nums, target):\n    for i in range(len(nums)):\n        for j in range(i+1, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]",
+                test_cases=[
+                    (([2, 7, 11, 15], 9), [0, 1]),
+                    (([3, 2, 4], 6), [1, 2]),
+                    (([3, 3], 6), [0, 1])
+                ]
+            )
+        ]
+        
+        return self.execute_challenge(random.choice(challenges))
+    
+    def bug_hunt_challenge(self) -> GameResult:
+        """Debug broken code challenges"""
+        challenges = [
+            Challenge(
+                description="🐛 DEBUG: BROKEN SORTING FUNCTION",
+                detailed_requirements="""
+Fix this broken bubble sort implementation:
+
+```python
+def bubble_sort(arr):
+    n = len(arr)
+    for i in range(n):
+        for j in range(0, n-i):
+            if arr[j] > arr[j+1]:
+                arr[j], arr[j+1] = arr[j+1], arr[j]
+    return arr
+```
+
+The function should sort a list in ascending order but has a bug.
+Figure out what's wrong and provide the corrected version.
+
+Requirements:
+- Fix the bug(s) in the code
+- Function should sort [64, 34, 25, 12, 22, 11, 90] correctly
+- Must still be bubble sort algorithm
+                """,
+                hints=[
+                    "Look at the range in the inner loop - what happens when j reaches n-i?",
+                    "The inner loop goes one step too far and causes index out of bounds",
+                    "Change range(0, n-i) to range(0, n-i-1)"
+                ],
+                solution="def bubble_sort(arr):\n    n = len(arr)\n    for i in range(n):\n        for j in range(0, n-i-1):\n            if arr[j] > arr[j+1]:\n                arr[j], arr[j+1] = arr[j+1], arr[j]\n    return arr",
+                test_cases=[
+                    ([64, 34, 25, 12, 22, 11, 90], [11, 12, 22, 25, 34, 64, 90]),
+                    ([5, 2, 8, 1, 9], [1, 2, 5, 8, 9])
+                ]
+            )
+        ]
+        
+        return self.execute_challenge(random.choice(challenges))
+    
+    def data_structure_challenge(self) -> GameResult:
+        """Advanced data structure implementation"""
+        challenges = [
+            Challenge(
+                description="📚 IMPLEMENT A STACK CLASS",
+                detailed_requirements="""
+Implement a Stack class with the following methods:
+
+- push(item): Add item to top of stack
+- pop(): Remove and return top item (return None if empty)
+- peek(): Return top item without removing (return None if empty)  
+- is_empty(): Return True if stack is empty
+- size(): Return number of items in stack
+
+Requirements:
+- Use a list internally to store items
+- Handle edge cases (popping from empty stack)
+- All methods should work correctly
+
+Your class will be tested with various operations.
+                """,
+                hints=[
+                    "Use self.items = [] to store the stack data",
+                    "push() should append to the list, pop() should remove from end",
+                    "Use len() for size and check if list is empty"
+                ],
+                solution="""class Stack:
+    def __init__(self):
+        self.items = []
+    
+    def push(self, item):
+        self.items.append(item)
+    
+    def pop(self):
+        return self.items.pop() if self.items else None
+    
+    def peek(self):
+        return self.items[-1] if self.items else None
+    
+    def is_empty(self):
+        return len(self.items) == 0
+    
+    def size(self):
+        return len(self.items)""",
+                test_cases=[
+                    # This will be tested differently due to class nature
+                ]
+            )
+        ]
+        
+        challenge = random.choice(challenges)
+        
+        # Special handling for class implementation
+        print(f"\n{challenge.description}")
+        print("=" * 50)
+        print(challenge.detailed_requirements)
+        print("\nCommands:")
+        print("- Type 'hint' for a hint")
+        print("- Type 'quit' to give up")
+        print("- Enter your complete class definition")
+        print("-" * 50)
+        
+        self.current_hints_used = 0
         attempts = 0
         start_time = time.time()
-        time_limit = self.get_time_limit()
+        time_limit = self.get_time_limit() * 2  # More time for class implementation
         
         while True:
             attempts += 1
@@ -479,46 +600,126 @@ class PythonBeGood:
             remaining = time_limit - elapsed
             
             if remaining <= 0:
-                print(f"\nTime's up! Fixed code: {bug['fixed_code']}")
-                print(f"Explanation: {bug['explanation']}")
-                return GameResult(False, elapsed, attempts)
+                print(f"\n⏰ Time's up! Here's the solution:")
+                print(f"```python\n{challenge.solution}\n```")
+                return GameResult(False, elapsed, attempts, self.current_hints_used)
             
-            print(f"\nTime remaining: {remaining:.1f}s")
-            user_input = input("Your fixed code: ").strip()
+            print(f"\n⏱️  Time remaining: {remaining:.1f}s | Attempt: {attempts}")
+            user_input = input(">>> ").strip()
             
-            # Simple check - in a real version you'd want more sophisticated checking
-            if user_input.replace(' ', '') == bug['fixed_code'].replace(' ', ''):
-                elapsed = time.time() - start_time
-                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
-                print(f"Explanation: {bug['explanation']}")
-                return GameResult(True, elapsed, attempts)
-            else:
-                print("Not quite right. Try again!")
+            if user_input.lower() == 'hint':
+                self.show_hint(challenge.hints)
+                continue
+            elif user_input.lower() == 'quit':
+                print(f"\n🏳️  Solution:")
+                print(f"```python\n{challenge.solution}\n```")
+                return GameResult(False, elapsed, attempts, self.current_hints_used)
+            
+            try:
+                # Test the Stack class
+                local_vars = {}
+                exec(user_input, {}, local_vars)
+                
+                if 'Stack' not in local_vars:
+                    print("❌ No Stack class found!")
+                    continue
+                
+                # Test the implementation
+                stack = local_vars['Stack']()
+                
+                # Test basic operations
+                tests_passed = 0
+                total_tests = 8
+                
+                # Test 1: Empty stack
+                if stack.is_empty() and stack.size() == 0:
+                    tests_passed += 1
+                
+                # Test 2: Push and size
+                stack.push(1)
+                if stack.size() == 1 and not stack.is_empty():
+                    tests_passed += 1
+                
+                # Test 3: Peek
+                if stack.peek() == 1:
+                    tests_passed += 1
+                
+                # Test 4: Push more items
+                stack.push(2)
+                stack.push(3)
+                if stack.size() == 3 and stack.peek() == 3:
+                    tests_passed += 1
+                
+                # Test 5: Pop
+                if stack.pop() == 3 and stack.size() == 2:
+                    tests_passed += 1
+                
+                # Test 6: Pop again
+                if stack.pop() == 2 and stack.peek() == 1:
+                    tests_passed += 1
+                
+                # Test 7: Pop last
+                if stack.pop() == 1 and stack.is_empty():
+                    tests_passed += 1
+                
+                # Test 8: Pop from empty
+                if stack.pop() is None and stack.peek() is None:
+                    tests_passed += 1
+                
+                print(f"✅ Passed {tests_passed}/{total_tests} tests")
+                
+                if tests_passed == total_tests:
+                    elapsed = time.time() - start_time
+                    print(f"\n🎉 PERFECT! All tests passed! Time: {elapsed:.2f}s, Attempts: {attempts}, Hints: {self.current_hints_used}")
+                    return GameResult(True, elapsed, attempts, self.current_hints_used)
+                    
+            except Exception as e:
+                print(f"❌ Error in your code: {e}")
     
     def show_stats(self):
-        """Show game statistics"""
+        """Show detailed game statistics"""
         if self.total_games == 0:
             accuracy = 0
         else:
             accuracy = (self.score / self.total_games) * 100
         
-        print(f"\n=== GAME STATISTICS ===")
+        print(f"\n=== TECHNICAL CODING STATISTICS ===")
         print(f"Total Score: {self.score}")
         print(f"Games Played: {self.total_games}")
-        print(f"Accuracy: {accuracy:.1f}%")
+        print(f"Success Rate: {accuracy:.1f}%")
         print(f"Current Difficulty: {self.difficulty.value}")
+        
+        # Performance metrics
+        if accuracy >= 80:
+            print("🏆 EXPERT LEVEL - Outstanding performance!")
+        elif accuracy >= 60:
+            print("⭐ PROFICIENT - Keep up the good work!")
+        elif accuracy >= 40:
+            print("📈 IMPROVING - You're getting there!")
+        else:
+            print("💪 LEARNING - Practice makes perfect!")
         
         input("\nPress Enter to continue...")
     
     def update_score(self, result: GameResult):
-        """Update score based on game result"""
+        """Update score based on game result with hint penalty"""
         self.total_games += 1
         if result.correct:
-            points = max(1, int(10 - result.time_taken + (5 - result.attempts)))
+            base_points = 15
+            time_bonus = max(0, int(10 - result.time_taken / 10))
+            attempt_penalty = (result.attempts - 1) * 2
+            hint_penalty = result.hints_used * 3
+            
+            points = max(1, base_points + time_bonus - attempt_penalty - hint_penalty)
             self.score += points
-            print(f"You earned {points} points!")
+            print(f"\n🎯 SCORING BREAKDOWN:")
+            print(f"   Base points: {base_points}")
+            print(f"   Time bonus: +{time_bonus}")
+            print(f"   Attempt penalty: -{attempt_penalty}")
+            print(f"   Hint penalty: -{hint_penalty}")
+            print(f"   Final score: {points} points!")
         else:
-            print("No points this time. Keep practicing!")
+            print("❌ No points this time. Keep practicing!")
     
     def run(self):
         """Main game loop"""
@@ -527,13 +728,14 @@ class PythonBeGood:
             "2": self.dictionary_challenge,
             "3": self.string_challenge,
             "4": self.function_challenge,
-            "5": self.quiz_challenge,
-            "6": self.algorithm_challenge,
-            "7": self.bug_hunt_challenge,
+            "5": self.algorithm_challenge,
+            "6": self.bug_hunt_challenge,
+            "7": self.data_structure_challenge,
         }
         
-        print("Welcome to Python Be Good!")
-        print("Practice your Python skills with fun challenges!")
+        print("🚀 Welcome to Python Be Good - Technical Edition!")
+        print("Master Python through hands-on coding challenges!")
+        print("💡 Pro tip: Type 'hint' during any challenge for help!")
         
         while True:
             self.clear_screen()
@@ -541,15 +743,17 @@ class PythonBeGood:
             choice = self.show_menu()
             
             if choice == "q":
-                print("\nThanks for playing Python Be Good!")
+                print("\n🎓 Thanks for practicing with Python Be Good!")
                 print(f"Final Score: {self.score} | Games Played: {self.total_games}")
+                if self.score > 100:
+                    print("🏆 Excellent coding skills demonstrated!")
                 break
             elif choice == "8":
                 self.set_difficulty()
             elif choice == "9":
                 self.show_stats()
             elif choice in games:
-                print(f"\nStarting challenge... Get ready!")
+                print(f"\n🔥 Preparing technical challenge... Get ready to code!")
                 time.sleep(2)
                 result = games[choice]()
                 self.update_score(result)
@@ -562,7 +766,7 @@ if __name__ == "__main__":
     try:
         game.run()
     except KeyboardInterrupt:
-        print("\n\nGame interrupted. Thanks for playing!")
+        print("\n\nGame interrupted. Thanks for coding!")
     except Exception as e:
         print(f"\nAn error occurred: {e}")
-        print("Thanks for playing!")
+        print("Thanks for practicing!")
