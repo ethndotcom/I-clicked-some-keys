@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        #canvas {
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            box-shadow: 
+                0 0 50px rgba(0, 255, 255, 0.3),
+                inset 0 0 20px rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.4);
+        }
+
+        .btn.active {
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            border: none;
+            color: black;
+            font-weight: bold;
+        }
+
+        .info {
+            position: absolute;
+            bottom: 20px;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .file-input {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+        }
+
+        .file-input input[type="file"] {
+            display: none;
+        }
+
+        .file-label {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .file-label:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button class="btn active" onclick="setVisualizerMode('bars')">Frequency Bars</button>
+        <button class="btn" onclick="setVisualizerMode('circle')">Circular Wave</button>
+        <button class="btn" onclick="setVisualizerMode('particles')">Particles</button>
+        <button class="btn" onclick="setVisualizerMode('waveform')">Waveform</button>
+        <button class="btn" onclick="toggleAudio()">Start/Stop</button>
+    </div>
+
+    <div class="file-input">
+        <input type="file" id="audioFile" accept="audio/*">
+        <label for="audioFile" class="file-label">Upload Audio File</label>
+    </div>
+
+    <canvas id="canvas"></canvas>
+    <audio id="audio" style="display: none;"></audio>
+
+    <div class="info">
+        <p>🎵 Click "Start/Stop" to use microphone or upload an audio file</p>
+        <p>Switch between different visualization modes using the buttons above</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const audio = document.getElementById('audio');
+        const audioFileInput = document.getElementById('audioFile');
+
+        // Set canvas size
+        canvas.width = window.innerWidth * 0.9;
+        canvas.height = window.innerHeight * 0.7;
+
+        let audioContext;
+        let analyser;
+        let dataArray;
+        let source;
+        let isPlaying = false;
+        let animationId;
+        let visualizerMode = 'bars';
+        let particles = [];
+
+        // Initialize particles for particle mode
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < 100; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    size: Math.random() * 3 + 1,
+                    hue: Math.random() * 360
+                });
+            }
+        }
+
+        function setVisualizerMode(mode) {
+            visualizerMode = mode;
+            // Update active button
+            document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (mode === 'particles') {
+                initParticles();
+            }
+        }
+
+        async function toggleAudio() {
+            if (!isPlaying) {
+                try {
+                    if (!audioContext) {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        analyser = audioContext.createAnalyser();
+                        analyser.fftSize = 256;
+                        dataArray = new Uint8Array(analyser.frequencyBinCount);
+                    }
+
+                    // If audio element has no source, use microphone
+                    if (!audio.src) {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        source = audioContext.createMediaStreamSource(stream);
+                    } else {
+                        source = audioContext.createMediaElementSource(audio);
+                        audio.play();
+                    }
+
+                    source.connect(analyser);
+                    isPlaying = true;
+                    visualize();
+                } catch (error) {
+                    console.error('Error accessing microphone:', error);
+                    alert('Please allow microphone access or upload an audio file');
+                }
+            } else {
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                }
+                if (audio.src) {
+                    audio.pause();
+                }
+                isPlaying = false;
+            }
+        }
+
+        // Handle file upload
+        audioFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                audio.src = url;
+                audio.load();
+            }
+        });
+
+        function visualize() {
+            if (!isPlaying) return;
+
+            animationId = requestAnimationFrame(visualize);
+            analyser.getByteFrequencyData(dataArray);
+
+            // Clear canvas with fade effect
+            ctx.fillStyle = 'rgba(12, 12, 12, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            switch (visualizerMode) {
+                case 'bars':
+                    drawFrequencyBars();
+                    break;
+                case 'circle':
+                    drawCircularWave();
+                    break;
+                case 'particles':
+                    drawParticles();
+                    break;
+                case 'waveform':
+                    drawWaveform();
+                    break;
+            }
+        }
+
+        function drawFrequencyBars() {
+            const barWidth = canvas.width / dataArray.length * 2;
+            let x = 0;
+
+            for (let i = 0; i < dataArray.length; i++) {
+                const barHeight = (dataArray[i] / 255) * canvas.height * 0.8;
+                
+                // Create gradient for each bar
+                const gradient = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - barHeight);
+                gradient.addColorStop(0, `hsl(${i * 2}, 100%, 50%)`);
+                gradient.addColorStop(1, `hsl(${i * 2 + 60}, 100%, 70%)`);
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                
+                // Add glow effect
+                ctx.shadowColor = `hsl(${i * 2}, 100%, 50%)`;
+                ctx.shadowBlur = 10;
+                ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                ctx.shadowBlur = 0;
+                
+                x += barWidth + 1;
+            }
+        }
+
+        function drawCircularWave() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 100;
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 2;
+
+            for (let i = 0; i < dataArray.length; i++) {
+                const angle = (i / dataArray.length) * Math.PI * 2;
+                const amplitude = (dataArray[i] / 255) * 100;
+                const x = centerX + Math.cos(angle) * (radius + amplitude);
+                const y = centerY + Math.sin(angle) * (radius + amplitude);
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+
+            ctx.closePath();
+            ctx.stroke();
+
+            // Add inner glow
+            ctx.shadowColor = '#00ffff';
+            ctx.shadowBlur = 20;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        function drawParticles() {
+            const avgAmplitude = dataArray.reduce((a, b) => a + b) / dataArray.length;
+            
+            particles.forEach((particle, index) => {
+                // Update particle position
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                
+                // Bounce off edges
+                if (particle.x <= 0 || particle.x >= canvas.width) particle.vx *= -1;
+                if (particle.y <= 0 || particle.y >= canvas.height) particle.vy *= -1;
+                
+                // Respond to audio
+                const audioInfluence = (dataArray[index % dataArray.length] / 255) * 5;
+                particle.size = Math.max(1, audioInfluence * 3);
+                
+                // Draw particle
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${particle.hue + avgAmplitude}, 100%, 60%, 0.8)`;
+                ctx.fill();
+                
+                // Add glow
+                ctx.shadowColor = `hsl(${particle.hue}, 100%, 50%)`;
+                ctx.shadowBlur = particle.size * 2;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            });
+        }
+
+        function drawWaveform() {
+            analyser.getByteTimeDomainData(dataArray);
+            
+            ctx.beginPath();
+            ctx.strokeStyle = '#ff00ff';
+            ctx.lineWidth = 3;
+            
+            const sliceWidth = canvas.width / dataArray.length;
+            let x = 0;
+            
+            for (let i = 0; i < dataArray.length; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = v * canvas.height / 2;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+                
+                x += sliceWidth;
+            }
+            
+            ctx.stroke();
+            
+            // Add glow effect
+            ctx.shadowColor = '#ff00ff';
+            ctx.shadowBlur = 15;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth * 0.9;
+            canvas.height = window.innerHeight * 0.7;
+        });
+
+        // Initialize particles
+        initParticles();
+    </script>
+</body>
+</html>
