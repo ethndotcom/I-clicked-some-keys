@@ -1,0 +1,1247 @@
+#!/usr/bin/env python3
+"""
+Java Be Good - A game to practice Java programming skills
+Inspired by ThePrimeagen's vim-be-good
+"""
+
+import random
+import time
+import os
+import sys
+from typing import List, Dict, Any, Callable
+from dataclasses import dataclass
+from enum import Enum
+
+class Difficulty(Enum):
+    NOOB = "noob"
+    EASY = "easy"
+    MEDIUM = "medium"
+    HARD = "hard"
+    NIGHTMARE = "nightmare"
+
+@dataclass
+class GameResult:
+    correct: bool
+    time_taken: float
+    attempts: int
+
+class JavaBeGood:
+    def __init__(self):
+        self.score = 0
+        self.total_games = 0
+        self.difficulty = Difficulty.EASY
+        
+    def clear_screen(self):
+        """Clear the terminal screen"""
+        os.system('cls' if os.name == 'nt' else 'clear')
+    
+    def print_banner(self):
+        """Print the game banner"""
+        banner = """
+╔═══════════════════════════════════════╗
+║             JAVA BE GOOD              ║
+║       Master Object-Oriented          ║
+║           Programming!                ║
+╚═══════════════════════════════════════╝
+        """
+        print(banner)
+        print(f"Score: {self.score} | Games Played: {self.total_games} | Difficulty: {self.difficulty.value}")
+        print("-" * 40)
+    
+    def show_menu(self) -> str:
+        """Show main menu and get user choice"""
+        options = {
+            "1": "OOP Concepts",
+            "2": "Collections Framework", 
+            "3": "Exception Handling",
+            "4": "Inheritance & Polymorphism",
+            "5": "Interfaces & Abstract Classes",
+            "6": "Java Syntax & Keywords",
+            "7": "Generics & Types",
+            "8": "Lambda & Streams",
+            "9": "Design Patterns",
+            "10": "Bug Hunt",
+            "11": "Code Completion",
+            "12": "Change Difficulty",
+            "13": "View Stats",
+            "q": "Quit"
+        }
+        
+        print("\nChoose your challenge:")
+        for key, value in options.items():
+            print(f"{key:2}. {value}")
+        
+        while True:
+            choice = input("\nEnter your choice: ").strip().lower()
+            if choice in options:
+                return choice
+            print("Invalid choice! Please try again.")
+    
+    def set_difficulty(self):
+        """Allow user to change difficulty"""
+        print("\nSelect difficulty:")
+        for i, diff in enumerate(Difficulty, 1):
+            print(f"{i}. {diff.value.title()}")
+        
+        try:
+            choice = int(input("Enter choice (1-5): "))
+            if 1 <= choice <= 5:
+                self.difficulty = list(Difficulty)[choice - 1]
+                print(f"Difficulty set to: {self.difficulty.value}")
+            else:
+                print("Invalid choice!")
+        except ValueError:
+            print("Invalid input!")
+        
+        input("Press Enter to continue...")
+    
+    def get_time_limit(self) -> float:
+        """Get time limit based on difficulty"""
+        limits = {
+            Difficulty.NOOB: 120.0,
+            Difficulty.EASY: 60.0,
+            Difficulty.MEDIUM: 35.0,
+            Difficulty.HARD: 25.0,
+            Difficulty.NIGHTMARE: 15.0
+        }
+        return limits[self.difficulty]
+    
+    def oop_concepts_challenge(self) -> GameResult:
+        """Challenge user with OOP concepts"""
+        challenges = [
+            {
+                "description": "Which keyword is used to inherit from a class in Java?",
+                "answer": "extends",
+                "options": ["extends", "inherits", "implements", "super"]
+            },
+            {
+                "description": "What access modifier allows access within the same package?",
+                "answer": "protected",
+                "options": ["private", "protected", "public", "default"],
+                "explanation": "protected allows access within package and subclasses"
+            },
+            {
+                "description": "Which principle hides internal implementation details?",
+                "answer": "Encapsulation",
+                "options": ["Encapsulation", "Inheritance", "Polymorphism", "Abstraction"],
+                "explanation": "Encapsulation bundles data and methods, hiding internal details"
+            },
+            {
+                "description": "What keyword creates an object instance?",
+                "answer": "new",
+                "options": ["new", "create", "instance", "make"]
+            },
+            {
+                "description": "Which method is called when an object is created?",
+                "answer": "Constructor",
+                "options": ["Constructor", "init()", "create()", "main()"],
+                "explanation": "Constructor has same name as class and no return type"
+            },
+            {
+                "description": "What does 'this' keyword refer to?",
+                "answer": "Current object instance",
+                "options": [
+                    "Current object instance",
+                    "Parent class",
+                    "Static context",
+                    "Method parameter"
+                ],
+                "explanation": "'this' refers to the current object instance"
+            }
+        ]
+        
+        challenge = random.choice(challenges)
+        print(f"\nOOP Concepts Challenge:")
+        print(f"{challenge['description']}")
+        
+        if 'options' in challenge:
+            for i, option in enumerate(challenge['options'], 1):
+                print(f"{i}. {option}")
+        
+        attempts = 0
+        start_time = time.time()
+        time_limit = self.get_time_limit()
+        
+        while True:
+            attempts += 1
+            elapsed = time.time() - start_time
+            remaining = time_limit - elapsed
+            
+            if remaining <= 0:
+                print(f"\nTime's up! Answer: {challenge['answer']}")
+                if 'explanation' in challenge:
+                    print(f"Explanation: {challenge['explanation']}")
+                return GameResult(False, elapsed, attempts)
+            
+            print(f"\nTime remaining: {remaining:.1f}s")
+            user_input = input("Your answer: ").strip()
+            
+            # Handle numbered choices
+            if 'options' in challenge and user_input.isdigit():
+                choice_num = int(user_input) - 1
+                if 0 <= choice_num < len(challenge['options']):
+                    user_input = challenge['options'][choice_num]
+            
+            if user_input.lower() == challenge['answer'].lower():
+                elapsed = time.time() - start_time
+                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
+                if 'explanation' in challenge:
+                    print(f"Explanation: {challenge['explanation']}")
+                return GameResult(True, elapsed, attempts)
+            else:
+                print("Incorrect! Try again.")
+    
+    def collections_challenge(self) -> GameResult:
+        """Challenge user with Java Collections Framework"""
+        challenges = [
+            {
+                "description": "Which interface is implemented by ArrayList?",
+                "answer": "List",
+                "options": ["List", "Set", "Map", "Queue"],
+                "explanation": "ArrayList implements the List interface"
+            },
+            {
+                "description": "How do you create an ArrayList of Strings?",
+                "answer": "ArrayList<String> list = new ArrayList<>();",
+                "alternatives": [
+                    "ArrayList<String> list = new ArrayList<>();",
+                    "ArrayList<String> list = new ArrayList<String>();",
+                    "List<String> list = new ArrayList<>();"
+                ]
+            },
+            {
+                "description": "Which collection doesn't allow duplicate elements?",
+                "answer": "Set",
+                "options": ["List", "Set", "Queue", "ArrayList"],
+                "explanation": "Set interface doesn't allow duplicate elements"
+            },
+            {
+                "description": "How do you add an element to a List?",
+                "answer": "add()",
+                "options": ["add()", "put()", "insert()", "append()"]
+            },
+            {
+                "description": "Which Map method retrieves a value by key?",
+                "answer": "get()",
+                "options": ["get()", "retrieve()", "find()", "value()"]
+            },
+            {
+                "description": "What's the difference between ArrayList and LinkedList?",
+                "answer": "ArrayList uses array, LinkedList uses nodes",
+                "options": [
+                    "ArrayList uses array, LinkedList uses nodes",
+                    "No difference",
+                    "ArrayList is slower",
+                    "LinkedList is always better"
+                ],
+                "explanation": "ArrayList: fast random access, LinkedList: fast insertion/deletion"
+            },
+            {
+                "description": "Which is thread-safe: Vector or ArrayList?",
+                "answer": "Vector",
+                "options": ["Vector", "ArrayList", "Both", "Neither"],
+                "explanation": "Vector is synchronized (thread-safe), ArrayList is not"
+            }
+        ]
+        
+        challenge = random.choice(challenges)
+        print(f"\nCollections Framework Challenge:")
+        print(f"{challenge['description']}")
+        
+        if 'options' in challenge:
+            for i, option in enumerate(challenge['options'], 1):
+                print(f"{i}. {option}")
+        
+        attempts = 0
+        start_time = time.time()
+        time_limit = self.get_time_limit()
+        
+        while True:
+            attempts += 1
+            elapsed = time.time() - start_time
+            remaining = time_limit - elapsed
+            
+            if remaining <= 0:
+                print(f"\nTime's up! Answer: {challenge['answer']}")
+                if 'explanation' in challenge:
+                    print(f"Explanation: {challenge['explanation']}")
+                return GameResult(False, elapsed, attempts)
+            
+            print(f"\nTime remaining: {remaining:.1f}s")
+            user_input = input("Your answer: ").strip()
+            
+            # Handle numbered choices
+            if 'options' in challenge and user_input.isdigit():
+                choice_num = int(user_input) - 1
+                if 0 <= choice_num < len(challenge['options']):
+                    user_input = challenge['options'][choice_num]
+            
+            # Check alternatives if they exist
+            if 'alternatives' in challenge:
+                correct = any(user_input.lower().replace(" ", "") == alt.lower().replace(" ", "") 
+                             for alt in challenge['alternatives'])
+            else:
+                correct = user_input.lower() == challenge['answer'].lower()
+            
+            if correct:
+                elapsed = time.time() - start_time
+                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
+                if 'explanation' in challenge:
+                    print(f"Explanation: {challenge['explanation']}")
+                return GameResult(True, elapsed, attempts)
+            else:
+                print("Incorrect! Try again.")
+    
+    def exception_handling_challenge(self) -> GameResult:
+        """Challenge user with exception handling"""
+        challenges = [
+            {
+                "description": "Which keyword is used to handle exceptions?",
+                "answer": "try",
+                "options": ["try", "catch", "handle", "exception"]
+            },
+            {
+                "description": "What comes after a try block?",
+                "answer": "catch",
+                "options": ["catch", "finally", "handle", "except"],
+                "explanation": "try block is followed by catch or finally"
+            },
+            {
+                "description": "Which block always executes, even if exception occurs?",
+                "answer": "finally",
+                "options": ["try", "catch", "finally", "always"],
+                "explanation": "finally block executes regardless of exceptions"
+            },
+            {
+                "description": "How do you throw a custom exception?",
+                "answer": "throw new Exception()",
+                "alternatives": [
+                    "throw new Exception()",
+                    "throw new Exception(\"message\")",
+                    "throw new CustomException()"
+                ]
+            },
+            {
+                "description": "What's the parent class of all exceptions?",
+                "answer": "Throwable",
+                "options": ["Exception", "Throwable", "Error", "Object"],
+                "explanation": "Throwable is the superclass of all exceptions and errors"
+            },
+            {
+                "description": "Which exception is thrown for array index out of bounds?",
+                "answer": "ArrayIndexOutOfBoundsException",
+                "alternatives": [
+                    "ArrayIndexOutOfBoundsException",
+                    "IndexOutOfBoundsException"
+                ]
+            },
+            {
+                "description": "What's the difference between Error and Exception?",
+                "answer": "Error is for serious system problems",
+                "options": [
+                    "Error is for serious system problems",
+                    "No difference",
+                    "Exception is worse than Error",
+                    "Error can be caught easily"
+                ],
+                "explanation": "Error indicates serious problems that applications shouldn't catch"
+            }
+        ]
+        
+        challenge = random.choice(challenges)
+        print(f"\nException Handling Challenge:")
+        print(f"{challenge['description']}")
+        
+        if 'options' in challenge:
+            for i, option in enumerate(challenge['options'], 1):
+                print(f"{i}. {option}")
+        
+        attempts = 0
+        start_time = time.time()
+        time_limit = self.get_time_limit()
+        
+        while True:
+            attempts += 1
+            elapsed = time.time() - start_time
+            remaining = time_limit - elapsed
+            
+            if remaining <= 0:
+                print(f"\nTime's up! Answer: {challenge['answer']}")
+                if 'explanation' in challenge:
+                    print(f"Explanation: {challenge['explanation']}")
+                return GameResult(False, elapsed, attempts)
+            
+            print(f"\nTime remaining: {remaining:.1f}s")
+            user_input = input("Your answer: ").strip()
+            
+            # Handle numbered choices
+            if 'options' in challenge and user_input.isdigit():
+                choice_num = int(user_input) - 1
+                if 0 <= choice_num < len(challenge['options']):
+                    user_input = challenge['options'][choice_num]
+            
+            # Check alternatives if they exist
+            if 'alternatives' in challenge:
+                correct = any(user_input.lower().replace(" ", "") == alt.lower().replace(" ", "") 
+                             for alt in challenge['alternatives'])
+            else:
+                correct = user_input.lower() == challenge['answer'].lower()
+            
+            if correct:
+                elapsed = time.time() - start_time
+                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
+                if 'explanation' in challenge:
+                    print(f"Explanation: {challenge['explanation']}")
+                return GameResult(True, elapsed, attempts)
+            else:
+                print("Incorrect! Try again.")
+    
+    def inheritance_polymorphism_challenge(self) -> GameResult:
+        """Challenge user with inheritance and polymorphism"""
+        challenges = [
+            {
+                "description": "Which keyword calls parent class constructor?",
+                "answer": "super()",
+                "alternatives": ["super()", "super", "parent()", "base()"]
+            },
+            {
+                "description": "What's method overriding?",
+                "answer": "Redefining parent method in child class",
+                "options": [
+                    "Redefining parent method in child class",
+                    "Having multiple methods with same name",
+                    "Calling parent method",
+                    "Creating new method"
+                ],
+                "explanation": "Overriding provides specific implementation in subclass"
+            },
+            {
+                "description": "What's method overloading?",
+                "answer": "Multiple methods with same name, different parameters",
+                "options": [
+                    "Multiple methods with same name, different parameters",
+                    "Redefining parent method",
+                    "Calling multiple methods",
+                    "Loading methods dynamically"
+                ],
+                "explanation": "Overloading allows multiple methods with same name but different signatures"
+            },
+            {
+                "description": "Which annotation indicates method overriding?",
+                "answer": "@Override",
+                "options": ["@Override", "@Overload", "@Super", "@Inherit"]
+            },
+            {
+                "description": "What does 'instanceof' operator check?",
+                "answer": "If object is instance of specific class",
+                "options": [
+                    "If object is instance of specific class",
+                    "If two objects are equal",
+                    "If class exists",
+                    "If method exists"
+                ],
+                "explanation": "instanceof checks if object is instance of particular class or interface"
+            },
+            {
+                "description": "Can you override static methods?",
+                "answer": "No",
+                "options": ["Yes", "No", "Sometimes", "Only in subclasses"],
+                "explanation": "Static methods belong to class, not instance, so can't be overridden"
+            },
+            {
+                "description": "What's runtime polymorphism achieved through?",
+                "answer": "Method overriding",
+                "options": ["Method overriding", "Method overloading", "Inheritance", "Interfaces"],
+                "explanation": "Runtime polymorphism is achieved through method overriding and dynamic method dispatch"
+            }
+        ]
+        
+        challenge = random.choice(challenges)
+        print(f"\nInheritance & Polymorphism Challenge:")
+        print(f"{challenge['description']}")
+        
+        if 'options' in challenge:
+            for i, option in enumerate(challenge['options'], 1):
+                print(f"{i}. {option}")
+        
+        attempts = 0
+        start_time = time.time()
+        time_limit = self.get_time_limit()
+        
+        while True:
+            attempts += 1
+            elapsed = time.time() - start_time
+            remaining = time_limit - elapsed
+            
+            if remaining <= 0:
+                print(f"\nTime's up! Answer: {challenge['answer']}")
+                if 'explanation' in challenge:
+                    print(f"Explanation: {challenge['explanation']}")
+                return GameResult(False, elapsed, attempts)
+            
+            print(f"\nTime remaining: {remaining:.1f}s")
+            user_input = input("Your answer: ").strip()
+            
+            # Handle numbered choices
+            if 'options' in challenge and user_input.isdigit():
+                choice_num = int(user_input) - 1
+                if 0 <= choice_num < len(challenge['options']):
+                    user_input = challenge['options'][choice_num]
+            
+            # Check alternatives if they exist
+            if 'alternatives' in challenge:
+                correct = any(user_input.lower().replace(" ", "") == alt.lower().replace(" ", "") 
+                             for alt in challenge['alternatives'])
+            else:
+                correct = user_input.lower() == challenge['answer'].lower()
+            
+            if correct:
+                elapsed = time.time() - start_time
+                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
+                if 'explanation' in challenge:
+                    print(f"Explanation: {challenge['explanation']}")
+                return GameResult(True, elapsed, attempts)
+            else:
+                print("Incorrect! Try again.")
+    
+    def interfaces_abstract_challenge(self) -> GameResult:
+        """Challenge user with interfaces and abstract classes"""
+        challenges = [
+            {
+                "description": "Which keyword is used to implement an interface?",
+                "answer": "implements",
+                "options": ["implements", "extends", "uses", "adopts"]
+            },
+            {
+                "description": "Can an interface have method implementations? (Java 8+)",
+                "answer": "Yes, default and static methods",
+                "options": [
+                    "Yes, default and static methods",
+                    "No, never",
+                    "Only static methods",
+                    "Only default methods"
+                ],
+                "explanation": "Java 8+ allows default and static methods in interfaces"
+            },
+            {
+                "description": "What keyword declares an abstract class?",
+                "answer": "abstract",
+                "options": ["abstract", "interface", "virtual", "pure"]
+            },
+            {
+                "description": "Can you instantiate an abstract class?",
+                "answer": "No",
+                "options": ["Yes", "No", "Sometimes", "Only with new keyword"],
+                "explanation": "Abstract classes cannot be instantiated directly"
+            },
+            {
+                "description": "How many interfaces can a class implement?",
+                "answer": "Multiple",
+                "options": ["One", "Two", "Multiple", "None"],
+                "explanation": "Java supports multiple interface implementation"
+            },
+            {
+                "description": "What's a functional interface?",
+                "answer": "Interface with exactly one abstract method",
+                "options": [
+                    "Interface with exactly one abstract method",
+                    "Interface with multiple methods",
+                    "Interface with no methods",
+                    "Interface with only default methods"
+                ],
+                "explanation": "Functional interfaces have exactly one abstract method (SAM)"
+            },
+            {
+                "description": "Which annotation marks a functional interface?",
+                "answer": "@FunctionalInterface",
+                "options": ["@FunctionalInterface", "@Functional", "@Lambda", "@SAM"]
+            }
+        ]
+        
+        challenge = random.choice(challenges)
+        print(f"\nInterfaces & Abstract Classes Challenge:")
+        print(f"{challenge['description']}")
+        
+        if 'options' in challenge:
+            for i, option in enumerate(challenge['options'], 1):
+                print(f"{i}. {option}")
+        
+        attempts = 0
+        start_time = time.time()
+        time_limit = self.get_time_limit()
+        
+        while True:
+            attempts += 1
+            elapsed = time.time() - start_time
+            remaining = time_limit - elapsed
+            
+            if remaining <= 0:
+                print(f"\nTime's up! Answer: {challenge['answer']}")
+                if 'explanation' in challenge:
+                    print(f"Explanation: {challenge['explanation']}")
+                return GameResult(False, elapsed, attempts)
+            
+            print(f"\nTime remaining: {remaining:.1f}s")
+            user_input = input("Your answer: ").strip()
+            
+            # Handle numbered choices
+            if 'options' in challenge and user_input.isdigit():
+                choice_num = int(user_input) - 1
+                if 0 <= choice_num < len(challenge['options']):
+                    user_input = challenge['options'][choice_num]
+            
+            if user_input.lower() == challenge['answer'].lower():
+                elapsed = time.time() - start_time
+                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
+                if 'explanation' in challenge:
+                    print(f"Explanation: {challenge['explanation']}")
+                return GameResult(True, elapsed, attempts)
+            else:
+                print("Incorrect! Try again.")
+    
+    def java_syntax_quiz(self) -> GameResult:
+        """Quiz about Java syntax and keywords"""
+        questions = [
+            {
+                "question": "Which is the correct main method signature?",
+                "options": [
+                    "A) public static void main(String[] args)",
+                    "B) public void main(String args)",
+                    "C) static void main(String[] args)",
+                    "D) public main(String[] args)"
+                ],
+                "answer": "A"
+            },
+            {
+                "question": "What's the default value of a boolean field?",
+                "options": ["A) true", "B) false", "C) null", "D) 0"],
+                "answer": "B"
+            },
+            {
+                "question": "Which keyword prevents inheritance?",
+                "options": ["A) static", "B) final", "C) private", "D) const"],
+                "answer": "B"
+            },
+            {
+                "question": "What does 'static' mean for a method?",
+                "options": [
+                    "A) Belongs to class, not instance",
+                    "B) Cannot be overridden",
+                    "C) Is abstract",
+                    "D) Is private"
+                ],
+                "answer": "A"
+            },
+            {
+                "question": "Which is NOT a primitive type?",
+                "options": ["A) int", "B) String", "C) boolean", "D) char"],
+                "answer": "B"
+            },
+            {
+                "question": "What's the size of int in Java?",
+                "options": ["A) 16 bits", "B) 32 bits", "C) 64 bits", "D) Platform dependent"],
+                "answer": "B"
+            },
+            {
+                "question": "Which loop ensures at least one execution?",
+                "options": ["A) for", "B) while", "C) do-while", "D) foreach"],
+                "answer": "C"
+            }
+        ]
+        
+        question = random.choice(questions)
+        print(f"\nJava Syntax Quiz:")
+        print(f"Question: {question['question']}")
+        for option in question['options']:
+            print(option)
+        
+        attempts = 0
+        start_time = time.time()
+        time_limit = self.get_time_limit() / 2
+        
+        while True:
+            attempts += 1
+            elapsed = time.time() - start_time
+            remaining = time_limit - elapsed
+            
+            if remaining <= 0:
+                print(f"\nTime's up! The answer was: {question['answer']}")
+                return GameResult(False, elapsed, attempts)
+            
+            print(f"\nTime remaining: {remaining:.1f}s")
+            user_input = input("Your answer (A/B/C/D): ").strip().upper()
+            
+            if user_input == question['answer']:
+                elapsed = time.time() - start_time
+                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
+                return GameResult(True, elapsed, attempts)
+            elif user_input in ['A', 'B', 'C', 'D']:
+                print("Incorrect! Try again.")
+            else:
+                print("Please enter A, B, C, or D")
+    
+    def generics_challenge(self) -> GameResult:
+        """Challenge user with Java Generics"""
+        challenges = [
+            {
+                "description": "How do you declare a generic class with type parameter T?",
+                "answer": "public class MyClass<T>",
+                "alternatives": [
+                    "public class MyClass<T>",
+                    "public class MyClass<T> {",
+                    "class MyClass<T>"
+                ]
+            },
+            {
+                "description": "What does List<?> mean?",
+                "answer": "List of unknown type",
+                "options": [
+                    "List of unknown type",
+                    "List of Object",
+                    "Empty list",
+                    "Syntax error"
+                ],
+                "explanation": "? is wildcard representing unknown type"
+            },
+            {
+                "description": "What's the difference between List<Object> and List<?>?",
+                "answer": "List<?> is read-only for elements",
+                "options": [
+                    "List<?> is read-only for elements",
+                    "No difference",
+                    "List<Object> is faster",
+                    "List<?> allows any type"
+                ],
+                "explanation": "List<?> doesn't allow adding elements (except null)"
+            },
+            {
+                "description": "What does <T extends Number> mean?",
+                "answer": "T must be Number or its subclass",
+                "options": [
+                    "T must be Number or its subclass",
+                    "T inherits from Number",
+                    "T is exactly Number",
+                    "T extends Number class"
+                ],
+                "explanation": "Bounded type parameter: T is upper-bounded by Number"
+            },
+            {
+                "description": "Can you use primitives as generic type arguments?",
+                "answer": "No, use wrapper classes",
+                "options": [
+                    "No, use wrapper classes",
+                    "Yes, directly",
+                    "Only int and boolean",
+                    "Yes, with casting"
+                ],
+                "explanation": "Generics work only with reference types, not primitives"
+            },
+            {
+                "description": "What's type erasure?",
+                "answer": "Generic type info removed at runtime",
+                "options": [
+                    "Generic type info removed at runtime",
+                    "Deleting generic code",
+                    "Compiler error",
+                    "Runtime type checking"
+                ],
+                "explanation": "Java removes generic type information at runtime for backward compatibility"
+            }
+        ]
+        
+        challenge = random.choice(challenges)
+        print(f"\nGenerics & Types Challenge:")
+        print(f"{challenge['description']}")
+        
+        if 'options' in challenge:
+            for i, option in enumerate(challenge['options'], 1):
+                print(f"{i}. {option}")
+        
+        attempts = 0
+        start_time = time.time()
+        time_limit = self.get_time_limit()
+        
+        while True:
+            attempts += 1
+            elapsed = time.time() - start_time
+            remaining = time_limit - elapsed
+            
+            if remaining <= 0:
+                print(f"\nTime's up! Answer: {challenge['answer']}")
+                if 'explanation' in challenge:
+                    print(f"Explanation: {challenge['explanation']}")
+                return GameResult(False, elapsed, attempts)
+            
+            print(f"\nTime remaining: {remaining:.1f}s")
+            user_input = input("Your answer: ").strip()
+            
+            # Handle numbered choices
+            if 'options' in challenge and user_input.isdigit():
+                choice_num = int(user_input) - 1
+                if 0 <= choice_num < len(challenge['options']):
+                    user_input = challenge['options'][choice_num]
+            
+            # Check alternatives if they exist
+            if 'alternatives' in challenge:
+                correct = any(user_input.lower().replace(" ", "") == alt.lower().replace(" ", "") 
+                             for alt in challenge['alternatives'])
+            else:
+                correct = user_input.lower() == challenge['answer'].lower()
+            
+            if correct:
+                elapsed = time.time() - start_time
+                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
+                if 'explanation' in challenge:
+                    print(f"Explanation: {challenge['explanation']}")
+                return GameResult(True, elapsed, attempts)
+            else:
+                print("Incorrect! Try again.")
+    
+    def lambda_streams_challenge(self) -> GameResult:
+        """Challenge user with Lambda expressions and Streams"""
+        challenges = [
+            {
+                "description": "How do you write a lambda that takes x and returns x * 2?",
+                "answer": "x -> x * 2",
+                "alternatives": ["x -> x * 2", "(x) -> x * 2", "x -> { return x * 2; }"]
+            },
+            {
+                "description": "Which method creates a stream from a list?",
+                "answer": "stream()",
+                "options": ["stream()", "toStream()", "asStream()", "getStream()"]
+            },
+            {
+                "description": "What does filter() do in streams?",
+                "answer": "Selects elements matching a condition",
+                "options": [
+                    "Selects elements matching a condition",
+                    "Transforms elements",
+                    "Counts elements",
+                    "Sorts elements"
+                ],
+                "explanation": "filter() keeps elements that match the predicate"
+            },
+            {
+                "description": "What does map() do in streams?",
+                "answer": "Transforms each element",
+                "options": [
+                    "Transforms each element",
+                    "Filters elements",
+                    "Counts elements",
+                    "Groups elements"
+                ],
+                "explanation": "map() applies a function to transform each element"
+            },
+            {
+                "description": "How do you collect stream results to a List?",
+                "answer": "collect(Collectors.toList())",
+                "alternatives": [
+                    "collect(Collectors.toList())",
+                    ".toList()",
+                    "collect(toList())"
+                ]
+            },
+            {
+                "description": "What's a method reference for System.out::println?",
+                "answer": "Lambda that prints the argument",
+                "options": [
+                    "Lambda that prints the argument",
+                    "Static method call",
+                    "Constructor reference",
+                    "Field access"
+                ],
+                "explanation": "System.out::println is equivalent to x -> System.out.println(x)"
+            },
+            {
+                "description": "Which is a terminal operation in streams?",
+                "answer": "collect()",
+                "options": ["filter()", "map()", "collect()", "peek()"],
+                "explanation": "Terminal operations like collect() end the stream processing"
+            }
+        ]
+        
+        challenge = random.choice(challenges)
+        print(f"\nLambda & Streams Challenge:")
+        print(f"{challenge['description']}")
+        
+        if 'options' in challenge:
+            for i, option in enumerate(challenge['options'], 1):
+                print(f"{i}. {option}")
+        
+        attempts = 0
+        start_time = time.time()
+        time_limit = self.get_time_limit()
+        
+        while True:
+            attempts += 1
+            elapsed = time.time() - start_time
+            remaining = time_limit - elapsed
+            
+            if remaining <= 0:
+                print(f"\nTime's up! Answer: {challenge['answer']}")
+                if 'explanation' in challenge:
+                    print(f"Explanation: {challenge['explanation']}")
+                return GameResult(False, elapsed, attempts)
+            
+            print(f"\nTime remaining: {remaining:.1f}s")
+            user_input = input("Your answer: ").strip()
+            
+            # Handle numbered choices
+            if 'options' in challenge and user_input.isdigit():
+                choice_num = int(user_input) - 1
+                if 0 <= choice_num < len(challenge['options']):
+                    user_input = challenge['options'][choice_num]
+            
+            # Check alternatives if they exist
+            if 'alternatives' in challenge:
+                correct = any(user_input.lower().replace(" ", "") == alt.lower().replace(" ", "") 
+                             for alt in challenge['alternatives'])
+            else:
+                correct = user_input.lower() == challenge['answer'].lower()
+            
+            if correct:
+                elapsed = time.time() - start_time
+                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
+                if 'explanation' in challenge:
+                    print(f"Explanation: {challenge['explanation']}")
+                return GameResult(True, elapsed, attempts)
+            else:
+                print("Incorrect! Try again.")
+    
+    def design_patterns_challenge(self) -> GameResult:
+        """Challenge user with common design patterns"""
+        challenges = [
+            {
+                "description": "Which pattern ensures only one instance of a class?",
+                "answer": "Singleton",
+                "options": ["Singleton", "Factory", "Observer", "Strategy"]
+            },
+            {
+                "description": "What pattern creates objects without specifying exact classes?",
+                "answer": "Factory",
+                "options": ["Factory", "Builder", "Prototype", "Singleton"],
+                "explanation": "Factory pattern creates objects through common interface"
+            },
+            {
+                "description": "Which pattern notifies multiple objects about state changes?",
+                "answer": "Observer",
+                "options": ["Observer", "Strategy", "Command", "State"],
+                "explanation": "Observer pattern implements publish-subscribe mechanism"
+            },
+            {
+                "description": "What pattern encapsulates algorithms and makes them interchangeable?",
+                "answer": "Strategy",
+                "options": ["Strategy", "State", "Command", "Template Method"],
+                "explanation": "Strategy pattern defines family of algorithms and makes them interchangeable"
+            },
+            {
+                "description": "Which pattern constructs complex objects step by step?",
+                "answer": "Builder",
+                "options": ["Builder", "Factory", "Prototype", "Abstract Factory"],
+                "explanation": "Builder pattern constructs complex objects using step-by-step approach"
+            },
+            {
+                "description": "What pattern provides simplified interface to complex subsystem?",
+                "answer": "Facade",
+                "options": ["Facade", "Adapter", "Bridge", "Proxy"],
+                "explanation": "Facade pattern provides unified interface to set of interfaces in subsystem"
+            }
+        ]
+        
+        challenge = random.choice(challenges)
+        print(f"\nDesign Patterns Challenge:")
+        print(f"{challenge['description']}")
+        
+        if 'options' in challenge:
+            for i, option in enumerate(challenge['options'], 1):
+                print(f"{i}. {option}")
+        
+        attempts = 0
+        start_time = time.time()
+        time_limit = self.get_time_limit()
+        
+        while True:
+            attempts += 1
+            elapsed = time.time() - start_time
+            remaining = time_limit - elapsed
+            
+            if remaining <= 0:
+                print(f"\nTime's up! Answer: {challenge['answer']}")
+                if 'explanation' in challenge:
+                    print(f"Explanation: {challenge['explanation']}")
+                return GameResult(False, elapsed, attempts)
+            
+            print(f"\nTime remaining: {remaining:.1f}s")
+            user_input = input("Your answer: ").strip()
+            
+            # Handle numbered choices
+            if 'options' in challenge and user_input.isdigit():
+                choice_num = int(user_input) - 1
+                if 0 <= choice_num < len(challenge['options']):
+                    user_input = challenge['options'][choice_num]
+            
+            if user_input.lower() == challenge['answer'].lower():
+                elapsed = time.time() - start_time
+                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
+                if 'explanation' in challenge:
+                    print(f"Explanation: {challenge['explanation']}")
+                return GameResult(True, elapsed, attempts)
+            else:
+                print("Incorrect! Try again.")
+    
+    def bug_hunt_challenge(self) -> GameResult:
+        """Find and fix bugs in Java code"""
+        bugs = [
+            {
+                "description": "Fix this class declaration",
+                "buggy_code": "public Class MyClass {",
+                "fixed_code": "public class MyClass {",
+                "explanation": "'class' keyword should be lowercase"
+            },
+            {
+                "description": "Fix this method call",
+                "buggy_code": "String str = \"hello\";\nint len = str.Length();",
+                "fixed_code": "String str = \"hello\";\nint len = str.length();",
+                "explanation": "Method name is length(), not Length()"
+            },
+            {
+                "description": "Fix this array declaration",
+                "buggy_code": "int arr[] = new int(5);",
+                "fixed_code": "int arr[] = new int[5];",
+                "explanation": "Use square brackets for array size, not parentheses"
+            },
+            {
+                "description": "Fix this comparison",
+                "buggy_code": "String a = \"hello\";\nif (a == \"hello\")",
+                "fixed_code": "String a = \"hello\";\nif (a.equals(\"hello\"))",
+                "explanation": "Use equals() to compare strings, not == operator"
+            },
+            {
+                "description": "Fix this constructor",
+                "buggy_code": "public void MyClass() { }",
+                "fixed_code": "public MyClass() { }",
+                "explanation": "Constructor should not have return type"
+            },
+            {
+                "description": "Fix this interface implementation",
+                "buggy_code": "class MyClass extends Runnable",
+                "fixed_code": "class MyClass implements Runnable",
+                "explanation": "Use 'implements' for interfaces, 'extends' for classes"
+            }
+        ]
+        
+        bug = random.choice(bugs)
+        print(f"\nBug Hunt: {bug['description']}")
+        print("Buggy code:")
+        print(f"  {bug['buggy_code']}")
+        print("\nWrite the fixed version:")
+        
+        attempts = 0
+        start_time = time.time()
+        time_limit = self.get_time_limit()
+        
+        while True:
+            attempts += 1
+            elapsed = time.time() - start_time
+            remaining = time_limit - elapsed
+            
+            if remaining <= 0:
+                print(f"\nTime's up!")
+                print(f"Fixed code: {bug['fixed_code']}")
+                print(f"Explanation: {bug['explanation']}")
+                return GameResult(False, elapsed, attempts)
+            
+            print(f"\nTime remaining: {remaining:.1f}s")
+            user_input = input("Your fixed code: ").strip()
+            
+            # Normalize spaces for comparison
+            user_normalized = ' '.join(user_input.split()).lower()
+            fixed_normalized = ' '.join(bug['fixed_code'].split()).lower()
+            
+            if user_normalized == fixed_normalized:
+                elapsed = time.time() - start_time
+                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
+                print(f"Explanation: {bug['explanation']}")
+                return GameResult(True, elapsed, attempts)
+            else:
+                print("Not quite right. Try again!")
+    
+    def code_completion_challenge(self) -> GameResult:
+        """Complete missing parts of Java code"""
+        challenges = [
+            {
+                "description": "Complete this class declaration to extend Thread",
+                "code": "public class MyThread ___ Thread {",
+                "answer": "extends",
+                "alternatives": ["extends"],
+                "explanation": "Use 'extends' to inherit from a class"
+            },
+            {
+                "description": "Complete this method to override toString",
+                "code": "___\npublic String toString() { return \"MyClass\"; }",
+                "answer": "@Override",
+                "alternatives": ["@Override"],
+                "explanation": "@Override annotation indicates method overriding"
+            },
+            {
+                "description": "Complete this generic method declaration",
+                "code": "public ___ <T> T getValue() { return value; }",
+                "answer": "static",
+                "alternatives": ["static", "final"],
+                "explanation": "Generic methods often need 'static' or access modifiers"
+            },
+            {
+                "description": "Complete this lambda expression for filtering even numbers",
+                "code": "list.stream().filter(___ -> ___ % 2 == 0)",
+                "answer": "x -> x",
+                "alternatives": ["x -> x", "n -> n", "num -> num"],
+                "explanation": "Lambda parameter name matches usage in expression"
+            },
+            {
+                "description": "Complete this try-catch block",
+                "code": "try {\n    int result = 10/0;\n} ___ (ArithmeticException e) {\n    System.out.println(\"Error\");\n}",
+                "answer": "catch",
+                "alternatives": ["catch"],
+                "explanation": "Use 'catch' to handle exceptions"
+            }
+        ]
+        
+        challenge = random.choice(challenges)
+        print(f"\nCode Completion Challenge:")
+        print(f"{challenge['description']}")
+        print("\nCode:")
+        print(challenge['code'])
+        print(f"\nFill in the blank(s)")
+        
+        attempts = 0
+        start_time = time.time()
+        time_limit = self.get_time_limit()
+        
+        while True:
+            attempts += 1
+            elapsed = time.time() - start_time
+            remaining = time_limit - elapsed
+            
+            if remaining <= 0:
+                print(f"\nTime's up! Answer: {challenge['answer']}")
+                print(f"Explanation: {challenge['explanation']}")
+                return GameResult(False, elapsed, attempts)
+            
+            print(f"\nTime remaining: {remaining:.1f}s")
+            user_input = input("Your answer: ").strip()
+            
+            # Check if answer matches any of the alternatives
+            correct = any(user_input.lower().replace(" ", "") == alt.lower().replace(" ", "") 
+                         for alt in challenge['alternatives'])
+            
+            if correct:
+                elapsed = time.time() - start_time
+                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
+                print(f"Explanation: {challenge['explanation']}")
+                return GameResult(True, elapsed, attempts)
+            else:
+                print("Incorrect! Try again.")
+    
+    def show_stats(self):
+        """Show game statistics"""
+        if self.total_games == 0:
+            accuracy = 0
+        else:
+            accuracy = (self.score / self.total_games) * 100
+        
+        print(f"\n=== GAME STATISTICS ===")
+        print(f"Total Score: {self.score}")
+        print(f"Games Played: {self.total_games}")
+        print(f"Accuracy: {accuracy:.1f}%")
+        print(f"Current Difficulty: {self.difficulty.value}")
+        
+        # Fun Java-related messages based on performance
+        if accuracy >= 90:
+            print("☕ Java Master! You've achieved true object-oriented enlightenment!")
+        elif accuracy >= 80:
+            print("🚀 Senior Java Developer level! Your polymorphism skills are strong!")
+        elif accuracy >= 70:
+            print("📈 Solid Java knowledge! You understand the fundamentals well!")
+        elif accuracy >= 60:
+            print("💡 Good progress! Your Java journey is well underway!")
+        elif accuracy >= 50:
+            print("📚 Learning well! Keep practicing those OOP concepts!")
+        else:
+            print("🌱 Java seedling! Every expert was once a beginner. Keep coding!")
+        
+        input("\nPress Enter to continue...")
+    
+    def update_score(self, result: GameResult):
+        """Update score based on game result"""
+        self.total_games += 1
+        if result.correct:
+            # Bonus points for speed and fewer attempts
+            time_bonus = max(0, int(15 - result.time_taken))
+            attempt_bonus = max(0, 8 - result.attempts)
+            difficulty_bonus = list(Difficulty).index(self.difficulty) * 2
+            
+            points = 15 + time_bonus + attempt_bonus + difficulty_bonus
+            self.score += points
+            print(f"You earned {points} points!")
+            if time_bonus > 0:
+                print(f"  Speed bonus: +{time_bonus}")
+            if attempt_bonus > 0:
+                print(f"  Accuracy bonus: +{attempt_bonus}")
+            if difficulty_bonus > 0:
+                print(f"  Difficulty bonus: +{difficulty_bonus}")
+        else:
+            print("No points this time. Java mastery takes practice!")
+    
+    def run(self):
+        """Main game loop"""
+        games = {
+            "1": self.oop_concepts_challenge,
+            "2": self.collections_challenge,
+            "3": self.exception_handling_challenge,
+            "4": self.inheritance_polymorphism_challenge,
+            "5": self.interfaces_abstract_challenge,
+            "6": self.java_syntax_quiz,
+            "7": self.generics_challenge,
+            "8": self.lambda_streams_challenge,
+            "9": self.design_patterns_challenge,
+            "10": self.bug_hunt_challenge,
+            "11": self.code_completion_challenge,
+        }
+        
+        print("Welcome to Java Be Good!")
+        print("Master the art of Object-Oriented Programming!")
+        print("From basic syntax to advanced design patterns - level up your Java skills!")
+        print("\n☕ 'Write once, run anywhere' - and code anywhere too! ☕")
+        
+        while True:
+            self.clear_screen()
+            self.print_banner()
+            choice = self.show_menu()
+            
+            if choice == "q":
+                print("\nThanks for playing Java Be Good!")
+                print(f"Final Score: {self.score} | Games Played: {self.total_games}")
+                print("May your code be bug-free and your objects well-encapsulated! ☕🚀")
+                break
+            elif choice == "12":
+                self.set_difficulty()
+            elif choice == "13":
+                self.show_stats()
+            elif choice in games:
+                print(f"\nStarting Java challenge... Prepare to think in objects! 💭")
+                time.sleep(2)
+                result = games[choice]()
+                self.update_score(result)
+                input("\nPress Enter to continue...")
+            
+            time.sleep(1)
+
+if __name__ == "__main__":
+    game = JavaBeGood()
+    try:
+        game.run()
+    except KeyboardInterrupt:
+        print("\n\nGame interrupted. Thanks for playing Java Be Good!")
+    except Exception as e:
+        print(f"\nAn error occurred: {e}")
+        print("Thanks for playing Java Be Good!")
