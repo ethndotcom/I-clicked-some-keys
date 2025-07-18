@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
-Python Be Good - Enhanced Technical Coding Game
-Practice Python programming with hands-on coding challenges
+C Be Good - A technical game to practice C programming skills
+Focused on actual code writing and deep C knowledge
+Inspired by ThePrimeagen's vim-be-good
 """
 
 import random
 import time
 import os
 import sys
-from typing import List, Dict, Any, Callable, Optional
+import re
+from typing import List, Dict, Any, Callable
 from dataclasses import dataclass
 from enum import Enum
 
@@ -26,21 +28,11 @@ class GameResult:
     attempts: int
     hints_used: int
 
-@dataclass
-class Challenge:
-    description: str
-    detailed_requirements: str
-    hints: List[str]
-    solution: str
-    test_cases: List[tuple]
-    expected_output: Any = None
-
-class PythonBeGood:
+class CBeGood:
     def __init__(self):
         self.score = 0
         self.total_games = 0
         self.difficulty = Difficulty.EASY
-        self.current_hints_used = 0
         
     def clear_screen(self):
         """Clear the terminal screen"""
@@ -50,8 +42,9 @@ class PythonBeGood:
         """Print the game banner"""
         banner = """
 ╔═══════════════════════════════════════╗
-║           PYTHON BE GOOD              ║
-║   Technical Python Coding Practice   ║
+║              C BE GOOD                ║
+║      Technical C Programming         ║
+║        Write Real Code!              ║
 ╚═══════════════════════════════════════╝
         """
         print(banner)
@@ -61,21 +54,23 @@ class PythonBeGood:
     def show_menu(self) -> str:
         """Show main menu and get user choice"""
         options = {
-            "1": "List Comprehension Mastery",
-            "2": "Dictionary & Data Manipulation",
-            "3": "String Processing & Regex",
-            "4": "Function Implementation",
-            "5": "Algorithm & Logic Challenges",
-            "6": "Bug Detection & Fixing",
-            "7": "Data Structure Operations",
-            "8": "Change Difficulty",
-            "9": "View Stats",
+            "1": "Pointer Mastery",
+            "2": "Array & Memory Operations", 
+            "3": "String Implementation",
+            "4": "Function & Callback Design",
+            "5": "Dynamic Memory Challenges",
+            "6": "Struct & Union Engineering",
+            "7": "Preprocessor & Macros",
+            "8": "Bit Manipulation",
+            "9": "Systems Programming",
+            "10": "Change Difficulty",
+            "11": "View Stats",
             "q": "Quit"
         }
         
         print("\nChoose your technical challenge:")
         for key, value in options.items():
-            print(f"{key}. {value}")
+            print(f"{key:2}. {value}")
         
         while True:
             choice = input("\nEnter your choice: ").strip().lower()
@@ -86,13 +81,21 @@ class PythonBeGood:
     def set_difficulty(self):
         """Allow user to change difficulty"""
         print("\nSelect difficulty:")
-        for i, diff in enumerate(Difficulty, 1):
-            print(f"{i}. {diff.value.title()}")
+        difficulties = {
+            1: (Difficulty.NOOB, "Basic syntax and simple operations"),
+            2: (Difficulty.EASY, "Standard C programming concepts"),
+            3: (Difficulty.MEDIUM, "Advanced pointers and memory management"),
+            4: (Difficulty.HARD, "Complex data structures and algorithms"),
+            5: (Difficulty.NIGHTMARE, "Systems programming and optimizations")
+        }
+        
+        for num, (diff, desc) in difficulties.items():
+            print(f"{num}. {diff.value.title()}: {desc}")
         
         try:
             choice = int(input("Enter choice (1-5): "))
             if 1 <= choice <= 5:
-                self.difficulty = list(Difficulty)[choice - 1]
+                self.difficulty = difficulties[choice][0]
                 print(f"Difficulty set to: {self.difficulty.value}")
             else:
                 print("Invalid choice!")
@@ -104,38 +107,137 @@ class PythonBeGood:
     def get_time_limit(self) -> float:
         """Get time limit based on difficulty"""
         limits = {
-            Difficulty.NOOB: 180.0,
-            Difficulty.EASY: 120.0,
-            Difficulty.MEDIUM: 60.0,
-            Difficulty.HARD: 30.0,
-            Difficulty.NIGHTMARE: 15.0
+            Difficulty.NOOB: 300.0,      # 5 minutes
+            Difficulty.EASY: 240.0,      # 4 minutes
+            Difficulty.MEDIUM: 180.0,    # 3 minutes
+            Difficulty.HARD: 120.0,      # 2 minutes
+            Difficulty.NIGHTMARE: 90.0   # 1.5 minutes
         }
         return limits[self.difficulty]
     
-    def show_hint(self, hints: List[str]) -> bool:
-        """Show a hint to the user"""
-        if self.current_hints_used >= len(hints):
-            print("No more hints available!")
-            return False
+    def show_hint(self, hints: List[str], hints_used: int) -> int:
+        """Show progressive hints to the user"""
+        if hints_used >= len(hints):
+            print("🚫 No more hints available!")
+            return hints_used
         
-        print(f"\n💡 HINT {self.current_hints_used + 1}: {hints[self.current_hints_used]}")
-        self.current_hints_used += 1
-        return True
+        print(f"\n💡 Hint {hints_used + 1}: {hints[hints_used]}")
+        return hints_used + 1
     
-    def execute_challenge(self, challenge: Challenge) -> GameResult:
-        """Execute a coding challenge with hint system"""
-        self.current_hints_used = 0
+    def normalize_code(self, code: str) -> str:
+        """Normalize C code for comparison"""
+        # Remove extra whitespace, normalize spacing around operators
+        code = re.sub(r'\s+', ' ', code.strip())
+        code = re.sub(r'\s*([{}();,*&\[\]])\s*', r'\1', code)
+        code = re.sub(r'\s*([=+\-*/])\s*', r' \1 ', code)
+        return code.lower()
+    
+    def check_code_similarity(self, user_code: str, expected_variants: List[str]) -> bool:
+        """Check if user code matches any expected variant"""
+        normalized_user = self.normalize_code(user_code)
+        return any(normalized_user == self.normalize_code(variant) for variant in expected_variants)
+    
+    def pointer_mastery_challenge(self) -> GameResult:
+        """Advanced pointer manipulation challenges"""
+        challenges = {
+            Difficulty.NOOB: [
+                {
+                    "description": """Write a function that swaps two integers using pointers.
+Function signature: void swap(int *a, int *b)
+
+Requirements:
+- Use pointer dereferencing to swap values
+- Function should modify the original variables""",
+                    "expected_code": [
+                        "void swap(int *a, int *b) { int temp = *a; *a = *b; *b = temp; }",
+                        "void swap(int *a, int *b) { int t = *a; *a = *b; *b = t; }",
+                        "void swap(int *a, int *b){int temp=*a;*a=*b;*b=temp;}"
+                    ],
+                    "hints": [
+                        "You need a temporary variable to hold one value during the swap",
+                        "Use *a to get the value that pointer a points to",
+                        "Pattern: temp = *a; *a = *b; *b = temp;"
+                    ]
+                }
+            ],
+            Difficulty.EASY: [
+                {
+                    "description": """Write a function that reverses an array in-place using pointers.
+Function signature: void reverse_array(int *arr, int size)
+
+Requirements:
+- Use two pointers (start and end)
+- Swap elements from both ends moving inward
+- Modify the original array""",
+                    "expected_code": [
+                        "void reverse_array(int *arr, int size) { int *start = arr; int *end = arr + size - 1; while (start < end) { int temp = *start; *start = *end; *end = temp; start++; end--; } }",
+                        "void reverse_array(int *arr, int size){int *s=arr,*e=arr+size-1;while(s<e){int t=*s;*s=*e;*e=t;s++;e--;}}",
+                        "void reverse_array(int *arr, int size) { for(int *l=arr, *r=arr+size-1; l<r; l++,r--) { int temp=*l; *l=*r; *r=temp; } }"
+                    ],
+                    "hints": [
+                        "Initialize two pointers: start at arr, end at arr + size - 1",
+                        "Use a while loop: while (start < end)",
+                        "Swap *start and *end, then increment start and decrement end"
+                    ]
+                }
+            ],
+            Difficulty.MEDIUM: [
+                {
+                    "description": """Implement a function that rotates an array right by k positions using pointer arithmetic.
+Function signature: void rotate_right(int *arr, int size, int k)
+
+Requirements:
+- Handle k > size cases (use modulo)
+- Use only pointer arithmetic (no array indexing with [])
+- Implement in-place rotation using reversal method
+- Must use helper function to reverse subarrays""",
+                    "expected_code": [
+                        "void reverse_range(int *start, int *end) { while (start < end) { int temp = *start; *start = *end; *end = temp; start++; end--; } } void rotate_right(int *arr, int size, int k) { k = k % size; reverse_range(arr, arr + size - 1); reverse_range(arr, arr + k - 1); reverse_range(arr + k, arr + size - 1); }",
+                    ],
+                    "hints": [
+                        "Use k = k % size to handle cases where k > size",
+                        "Rotation can be done by: reverse entire array, reverse first k elements, reverse remaining elements",
+                        "You'll need a helper function to reverse a range between two pointers",
+                        "For right rotation by k: reverse all, reverse [0,k-1], reverse [k,size-1]"
+                    ]
+                }
+            ],
+            Difficulty.HARD: [
+                {
+                    "description": """Implement a function that finds the longest increasing subsequence in an array.
+Function signature: int* longest_increasing_subsequence(int *arr, int size, int *result_size)
+
+Requirements:
+- Return dynamically allocated array containing the LIS
+- Set *result_size to the length of the LIS
+- Use dynamic programming approach
+- Handle memory allocation properly""",
+                    "expected_code": [
+                        "int* longest_increasing_subsequence(int *arr, int size, int *result_size) { int *dp = malloc(size * sizeof(int)); int *prev = malloc(size * sizeof(int)); for(int i = 0; i < size; i++) { dp[i] = 1; prev[i] = -1; } int max_len = 1, max_idx = 0; for(int i = 1; i < size; i++) { for(int j = 0; j < i; j++) { if(arr[j] < arr[i] && dp[j] + 1 > dp[i]) { dp[i] = dp[j] + 1; prev[i] = j; } } if(dp[i] > max_len) { max_len = dp[i]; max_idx = i; } } *result_size = max_len; int *result = malloc(max_len * sizeof(int)); int idx = max_idx; for(int i = max_len - 1; i >= 0; i--) { result[i] = arr[idx]; idx = prev[idx]; } free(dp); free(prev); return result; }"
+                    ],
+                    "hints": [
+                        "Use dynamic programming: dp[i] = length of LIS ending at index i",
+                        "Keep track of previous indices to reconstruct the sequence",
+                        "For each position, check all previous positions with smaller values",
+                        "Don't forget to allocate memory for the result and free temporary arrays"
+                    ]
+                }
+            ]
+        }
         
-        print(f"\n{challenge.description}")
-        print("=" * 50)
-        print(challenge.detailed_requirements)
-        print("\nCommands:")
-        print("- Type 'hint' for a hint")
-        print("- Type 'quit' to give up")
-        print("- Enter your Python code to test it")
-        print("-" * 50)
+        challenge_list = challenges.get(self.difficulty, challenges[Difficulty.EASY])
+        challenge = random.choice(challenge_list)
+        
+        print(f"\n{'='*60}")
+        print("🎯 POINTER MASTERY CHALLENGE")
+        print(f"{'='*60}")
+        print(f"\n{challenge['description']}")
+        print(f"\n📝 Write your complete function below.")
+        print("💡 Type 'hint' for a hint, 'quit' to give up")
+        print("-" * 60)
         
         attempts = 0
+        hints_used = 0
         start_time = time.time()
         time_limit = self.get_time_limit()
         
@@ -145,454 +247,126 @@ class PythonBeGood:
             remaining = time_limit - elapsed
             
             if remaining <= 0:
-                print(f"\n⏰ Time's up! Here's the solution:")
-                print(f"```python\n{challenge.solution}\n```")
-                return GameResult(False, elapsed, attempts, self.current_hints_used)
+                print(f"\n⏰ Time's up!")
+                print(f"✅ Expected solution:")
+                print(challenge['expected_code'][0])
+                return GameResult(False, elapsed, attempts, hints_used)
             
             print(f"\n⏱️  Time remaining: {remaining:.1f}s | Attempt: {attempts}")
-            user_input = input(">>> ").strip()
+            user_input = input("Your code: ").strip()
+            
+            if user_input.lower() == 'quit':
+                print("Giving up? Here's the solution:")
+                print(challenge['expected_code'][0])
+                return GameResult(False, time.time() - start_time, attempts, hints_used)
             
             if user_input.lower() == 'hint':
-                self.show_hint(challenge.hints)
+                hints_used = self.show_hint(challenge['hints'], hints_used)
                 continue
-            elif user_input.lower() == 'quit':
-                print(f"\n🏳️  Solution:")
-                print(f"```python\n{challenge.solution}\n```")
-                return GameResult(False, elapsed, attempts, self.current_hints_used)
             
-            try:
-                # Test the user's code
-                if self.test_code(user_input, challenge):
-                    elapsed = time.time() - start_time
-                    print(f"\n🎉 CORRECT! Time: {elapsed:.2f}s, Attempts: {attempts}, Hints: {self.current_hints_used}")
-                    return GameResult(True, elapsed, attempts, self.current_hints_used)
-                    
-            except Exception as e:
-                print(f"❌ Error in your code: {e}")
-                print("Check your syntax and try again!")
-    
-    def test_code(self, user_code: str, challenge: Challenge) -> bool:
-        """Test user's code against challenge requirements"""
-        try:
-            if challenge.test_cases:
-                # For function challenges
-                local_vars = {}
-                exec(user_code, {}, local_vars)
-                
-                if not local_vars:
-                    print("❌ No function defined!")
-                    return False
-                
-                # Get the function
-                func_name = list(local_vars.keys())[0]
-                func = local_vars[func_name]
-                
-                # Test all cases
-                for i, test_case in enumerate(challenge.test_cases):
-                    if len(test_case) == 2:
-                        input_val, expected = test_case
-                        if isinstance(input_val, tuple):
-                            result = func(*input_val)
-                        else:
-                            result = func(input_val)
-                    else:
-                        *inputs, expected = test_case
-                        result = func(*inputs)
-                    
-                    if result != expected:
-                        print(f"❌ Test case {i+1} failed:")
-                        print(f"   Input: {test_case[:-1]}")
-                        print(f"   Expected: {expected}")
-                        print(f"   Got: {result}")
-                        return False
-                
-                print("✅ All test cases passed!")
-                return True
+            if self.check_code_similarity(user_input, challenge['expected_code']):
+                elapsed = time.time() - start_time
+                print(f"\n🎉 Excellent! Perfect solution!")
+                print(f"⏱️  Time: {elapsed:.2f}s | Attempts: {attempts} | Hints: {hints_used}")
+                return GameResult(True, elapsed, attempts, hints_used)
             else:
-                # For expression challenges
-                result = eval(user_code)
-                if result == challenge.expected_output:
-                    print(f"✅ Correct! Result: {result}")
-                    return True
-                else:
-                    print(f"❌ Expected: {challenge.expected_output}, Got: {result}")
-                    return False
-                    
-        except Exception as e:
-            raise e
+                print("❌ Not quite right. Check your syntax and logic.")
+                if attempts >= 3:
+                    print("💡 Struggling? Type 'hint' for help!")
     
-    def list_comprehension_challenge(self) -> GameResult:
-        """Advanced list comprehension challenges"""
-        challenges = [
-            Challenge(
-                description="🔥 NESTED LIST FLATTENING",
-                detailed_requirements="""
-Write a list comprehension that flattens a nested list structure.
-
-Given: nested_list = [[1, 2], [3, 4, 5], [6]]
-Goal: Create a flat list [1, 2, 3, 4, 5, 6]
+    def array_memory_challenge(self) -> GameResult:
+        """Advanced array and memory operation challenges"""
+        challenges = {
+            Difficulty.EASY: [
+                {
+                    "description": """Write a function that dynamically allocates a 2D integer array.
+Function signature: int** create_2d_array(int rows, int cols)
 
 Requirements:
-- Must use list comprehension
-- Should work for any nested list structure (one level deep)
-- Your code should handle the variable 'nested_list'
-                """,
-                hints=[
-                    "Think about iterating through each sublist, then through each item",
-                    "Use nested for loops in your comprehension: [item for sublist in ... for item in ...]",
-                    "The syntax is: [item for sublist in nested_list for item in sublist]"
-                ],
-                solution="[item for sublist in nested_list for item in sublist]",
-                test_cases=[],
-                expected_output=[1, 2, 3, 4, 5, 6]
-            ),
-            Challenge(
-                description="🎯 CONDITIONAL FILTERING WITH TRANSFORMATION",
-                detailed_requirements="""
-Create a list comprehension that processes a list of numbers.
-
-Given: numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-Goal: Get squares of even numbers only
-
-Requirements:
-- Use list comprehension with conditional
-- Square each number that is even
-- Filter out odd numbers completely
-- Result should be [4, 16, 36, 64, 100]
-                """,
-                hints=[
-                    "Use 'if' condition at the end of comprehension to filter",
-                    "Apply transformation (squaring) before the conditional",
-                    "Structure: [x**2 for x in numbers if condition]"
-                ],
-                solution="[x**2 for x in numbers if x % 2 == 0]",
-                test_cases=[],
-                expected_output=[4, 16, 36, 64, 100]
-            )
-        ]
-        
-        challenge = random.choice(challenges)
-        
-        # Set up the test environment
-        if "nested_list" in challenge.detailed_requirements:
-            exec("nested_list = [[1, 2], [3, 4, 5], [6]]", globals())
-        elif "numbers" in challenge.detailed_requirements:
-            exec("numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]", globals())
-        
-        return self.execute_challenge(challenge)
-    
-    def dictionary_challenge(self) -> GameResult:
-        """Advanced dictionary manipulation challenges"""
-        challenges = [
-            Challenge(
-                description="🗂️  DICTIONARY INVERSION WITH GROUPING",
-                detailed_requirements="""
-Write code to invert a dictionary where values become keys and keys become values.
-Handle cases where multiple keys have the same value by grouping them.
-
-Given: data = {'a': 1, 'b': 2, 'c': 1, 'd': 3, 'e': 2}
-Goal: {1: ['a', 'c'], 2: ['b', 'e'], 3: ['d']}
-
-Requirements:
-- Invert key-value pairs
-- Group original keys that had the same value
-- Values should be lists of keys
-- Use dictionary comprehension or combination of dict operations
-                """,
-                hints=[
-                    "You need to group keys by their values first",
-                    "Consider using a loop to build groups, or use dict comprehension with a helper",
-                    "One approach: {v: [k for k, val in data.items() if val == v] for v in set(data.values())}"
-                ],
-                solution="{v: [k for k, val in data.items() if val == v] for v in set(data.values())}",
-                test_cases=[],
-                expected_output={1: ['a', 'c'], 2: ['b', 'e'], 3: ['d']}
-            ),
-            Challenge(
-                description="🔄 NESTED DICTIONARY PROCESSING",
-                detailed_requirements="""
-Extract and transform data from a nested dictionary structure.
-
-Given: students = {
-    'math': {'alice': 85, 'bob': 92},
-    'science': {'alice': 78, 'bob': 88, 'charlie': 95}
-}
-
-Goal: Create a student-centered view with average scores
-Result: {'alice': 81.5, 'bob': 90.0, 'charlie': 95.0}
-
-Requirements:
-- Calculate average score per student across all subjects
-- Handle students who don't have scores in all subjects
-- Use dictionary comprehension or dict operations
-                """,
-                hints=[
-                    "First, collect all unique student names across all subjects",
-                    "For each student, find all their scores across subjects",
-                    "Calculate average of their scores"
-                ],
-                solution="{ student: sum(subject_scores[student] for subject_scores in students.values() if student in subject_scores) / sum(1 for subject_scores in students.values() if student in subject_scores) for student in set().union(*[subject_scores.keys() for subject_scores in students.values()]) }",
-                test_cases=[],
-                expected_output={'alice': 81.5, 'bob': 90.0, 'charlie': 95.0}
-            )
-        ]
-        
-        challenge = random.choice(challenges)
-        
-        # Set up test environment
-        if "data" in challenge.detailed_requirements:
-            exec("data = {'a': 1, 'b': 2, 'c': 1, 'd': 3, 'e': 2}", globals())
-        elif "students" in challenge.detailed_requirements:
-            exec("students = {'math': {'alice': 85, 'bob': 92}, 'science': {'alice': 78, 'bob': 88, 'charlie': 95}}", globals())
-        
-        return self.execute_challenge(challenge)
-    
-    def string_challenge(self) -> GameResult:
-        """Advanced string processing challenges"""
-        challenges = [
-            Challenge(
-                description="📝 ADVANCED STRING PARSING",
-                detailed_requirements="""
-Parse and extract information from a formatted string.
-
-Given: log_entry = "2024-01-15 14:30:22 ERROR user_id=12345 action=login message='Invalid password attempt'"
-Goal: Extract into dictionary: {
-    'timestamp': '2024-01-15 14:30:22',
-    'level': 'ERROR',
-    'user_id': '12345',
-    'action': 'login',
-    'message': 'Invalid password attempt'
-}
-
-Requirements:
-- Parse the log entry string
-- Extract all key-value pairs
-- Handle quoted values correctly
-- Return as a dictionary
-                """,
-                hints=[
-                    "Split the string into parts and process each part",
-                    "Use string methods like split(), strip(), and slice notation",
-                    "For quoted values, you'll need to handle the quotes specially"
-                ],
-                solution="{'timestamp': log_entry[:19], 'level': log_entry.split()[2], 'user_id': log_entry.split('user_id=')[1].split()[0], 'action': log_entry.split('action=')[1].split()[0], 'message': log_entry.split(\"message='\")[1].rstrip(\"'\")}",
-                test_cases=[],
-                expected_output={
-                    'timestamp': '2024-01-15 14:30:22',
-                    'level': 'ERROR', 
-                    'user_id': '12345',
-                    'action': 'login',
-                    'message': 'Invalid password attempt'
+- Allocate memory for array of int* pointers
+- Allocate memory for each row
+- Return pointer to array of pointers
+- Handle allocation failures by returning NULL""",
+                    "expected_code": [
+                        "int** create_2d_array(int rows, int cols) { int **arr = malloc(rows * sizeof(int*)); if (!arr) return NULL; for (int i = 0; i < rows; i++) { arr[i] = malloc(cols * sizeof(int)); if (!arr[i]) { for (int j = 0; j < i; j++) free(arr[j]); free(arr); return NULL; } } return arr; }",
+                        "int** create_2d_array(int rows, int cols){int **arr=malloc(rows*sizeof(int*));if(!arr)return NULL;for(int i=0;i<rows;i++){arr[i]=malloc(cols*sizeof(int));if(!arr[i]){for(int j=0;j<i;j++)free(arr[j]);free(arr);return NULL;}}return arr;}"
+                    ],
+                    "hints": [
+                        "First allocate array of int* pointers using malloc(rows * sizeof(int*))",
+                        "Then for each row, allocate memory for cols integers",
+                        "Always check if malloc returns NULL",
+                        "If any allocation fails, free previously allocated memory"
+                    ]
                 }
-            )
-        ]
-        
-        challenge = random.choice(challenges)
-        exec("log_entry = \"2024-01-15 14:30:22 ERROR user_id=12345 action=login message='Invalid password attempt'\"", globals())
-        
-        return self.execute_challenge(challenge)
-    
-    def function_challenge(self) -> GameResult:
-        """Advanced function implementation challenges"""
-        challenges = [
-            Challenge(
-                description="⚡ RECURSIVE FUNCTION IMPLEMENTATION",
-                detailed_requirements="""
-Implement a recursive function to calculate the nth Fibonacci number.
+            ],
+            Difficulty.MEDIUM: [
+                {
+                    "description": """Implement a dynamic array (vector) with resize capability.
+Create a structure and functions for: creation, insertion, resizing, and cleanup.
 
-Function signature: fibonacci(n)
+Structure: typedef struct { int *data; int size; int capacity; } DynamicArray;
+Functions needed:
+- DynamicArray* create_array(int initial_capacity)
+- void push_back(DynamicArray *arr, int value)  
+- void cleanup_array(DynamicArray *arr)
 
 Requirements:
-- Must use recursion (not loops)
-- Handle base cases: fibonacci(0) = 0, fibonacci(1) = 1
-- For n > 1: fibonacci(n) = fibonacci(n-1) + fibonacci(n-2)
-- Should work for reasonable values of n
+- Double capacity when array is full
+- Handle memory allocation failures""",
+                    "expected_code": [
+                        "typedef struct { int *data; int size; int capacity; } DynamicArray; DynamicArray* create_array(int initial_capacity) { DynamicArray *arr = malloc(sizeof(DynamicArray)); if (!arr) return NULL; arr->data = malloc(initial_capacity * sizeof(int)); if (!arr->data) { free(arr); return NULL; } arr->size = 0; arr->capacity = initial_capacity; return arr; } void push_back(DynamicArray *arr, int value) { if (arr->size >= arr->capacity) { int new_capacity = arr->capacity * 2; int *new_data = realloc(arr->data, new_capacity * sizeof(int)); if (!new_data) return; arr->data = new_data; arr->capacity = new_capacity; } arr->data[arr->size++] = value; } void cleanup_array(DynamicArray *arr) { if (arr) { free(arr->data); free(arr); } }"
+                    ],
+                    "hints": [
+                        "The struct should track: data pointer, current size, and capacity",
+                        "In push_back, check if size >= capacity, then resize using realloc",
+                        "Double the capacity when resizing: new_capacity = capacity * 2",
+                        "Always free both the data array and the struct in cleanup"
+                    ]
+                }
+            ],
+            Difficulty.HARD: [
+                {
+                    "description": """Implement a memory pool allocator for fixed-size blocks.
+Structure: typedef struct { void *memory; void *free_list; int block_size; int num_blocks; } MemoryPool;
 
-Test cases will verify correctness for multiple inputs.
-                """,
-                hints=[
-                    "Define base cases first: if n == 0 return 0, if n == 1 return 1",
-                    "For other cases, return the sum of the two previous fibonacci numbers",
-                    "def fibonacci(n): return 0 if n == 0 else 1 if n == 1 else fibonacci(n-1) + fibonacci(n-2)"
-                ],
-                solution="def fibonacci(n):\n    if n == 0:\n        return 0\n    elif n == 1:\n        return 1\n    else:\n        return fibonacci(n-1) + fibonacci(n-2)",
-                test_cases=[
-                    (0, 0), (1, 1), (2, 1), (3, 2), (4, 3), (5, 5), (6, 8)
-                ]
-            ),
-            Challenge(
-                description="🔧 HIGHER-ORDER FUNCTION",
-                detailed_requirements="""
-Create a function that takes another function and a list, applies the function to each element,
-and returns only the results that are greater than a threshold.
-
-Function signature: filter_and_transform(func, data, threshold)
-
-Requirements:
-- Apply 'func' to each element in 'data'
-- Keep only results greater than 'threshold'
-- Return as a list
-- Example: filter_and_transform(lambda x: x**2, [1,2,3,4,5], 10) → [16, 25]
-
-The function should be generic and work with any function and data.
-                """,
-                hints=[
-                    "Use a list comprehension with filtering",
-                    "Apply the function first, then check if result > threshold",
-                    "Structure: [func(x) for x in data if func(x) > threshold]"
-                ],
-                solution="def filter_and_transform(func, data, threshold):\n    return [func(x) for x in data if func(x) > threshold]",
-                test_cases=[
-                    ((lambda x: x**2, [1,2,3,4,5], 10), [16, 25]),
-                    ((lambda x: x*3, [1,2,3,4], 5), [9, 12]),
-                    ((lambda x: x+10, [1,2,3], 12), [13])
-                ]
-            )
-        ]
-        
-        return self.execute_challenge(random.choice(challenges))
-    
-    def algorithm_challenge(self) -> GameResult:
-        """Complex algorithmic challenges"""
-        challenges = [
-            Challenge(
-                description="🧮 ALGORITHM: TWO SUM PROBLEM",
-                detailed_requirements="""
-Implement a function that finds two numbers in a list that add up to a target sum.
-
-Function signature: two_sum(nums, target)
+Functions:
+- MemoryPool* create_pool(int block_size, int num_blocks)
+- void* pool_alloc(MemoryPool *pool)
+- void pool_free(MemoryPool *pool, void *ptr)
+- void destroy_pool(MemoryPool *pool)
 
 Requirements:
-- Return indices of the two numbers that add up to target
-- You may assume exactly one solution exists
-- Don't use the same element twice
-- Example: two_sum([2, 7, 11, 15], 9) → [0, 1] (because nums[0] + nums[1] = 2 + 7 = 9)
-
-Optimize for time complexity if possible.
-                """,
-                hints=[
-                    "Try the brute force approach first: nested loops checking all pairs",
-                    "For each number, check if (target - number) exists in the remaining list",
-                    "Use enumerate() to get both index and value"
-                ],
-                solution="def two_sum(nums, target):\n    for i in range(len(nums)):\n        for j in range(i+1, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]",
-                test_cases=[
-                    (([2, 7, 11, 15], 9), [0, 1]),
-                    (([3, 2, 4], 6), [1, 2]),
-                    (([3, 3], 6), [0, 1])
-                ]
-            )
-        ]
+- Use a linked list of free blocks
+- Each free block points to the next free block
+- Return NULL when pool is exhausted""",
+                    "expected_code": [
+                        "typedef struct { void *memory; void *free_list; int block_size; int num_blocks; } MemoryPool; MemoryPool* create_pool(int block_size, int num_blocks) { MemoryPool *pool = malloc(sizeof(MemoryPool)); if (!pool) return NULL; pool->memory = malloc(block_size * num_blocks); if (!pool->memory) { free(pool); return NULL; } pool->block_size = block_size; pool->num_blocks = num_blocks; pool->free_list = pool->memory; char *ptr = (char*)pool->memory; for (int i = 0; i < num_blocks - 1; i++) { *(void**)(ptr + i * block_size) = ptr + (i + 1) * block_size; } *(void**)(ptr + (num_blocks - 1) * block_size) = NULL; return pool; } void* pool_alloc(MemoryPool *pool) { if (!pool->free_list) return NULL; void *block = pool->free_list; pool->free_list = *(void**)pool->free_list; return block; } void pool_free(MemoryPool *pool, void *ptr) { *(void**)ptr = pool->free_list; pool->free_list = ptr; } void destroy_pool(MemoryPool *pool) { if (pool) { free(pool->memory); free(pool); } }"
+                    ],
+                    "hints": [
+                        "Initialize free list by linking all blocks together",
+                        "Each block stores a pointer to the next free block in its first bytes",
+                        "pool_alloc: take first block from free_list and update free_list",
+                        "pool_free: add returned block to front of free_list"
+                    ]
+                }
+            ]
+        }
         
-        return self.execute_challenge(random.choice(challenges))
-    
-    def bug_hunt_challenge(self) -> GameResult:
-        """Debug broken code challenges"""
-        challenges = [
-            Challenge(
-                description="🐛 DEBUG: BROKEN SORTING FUNCTION",
-                detailed_requirements="""
-Fix this broken bubble sort implementation:
-
-```python
-def bubble_sort(arr):
-    n = len(arr)
-    for i in range(n):
-        for j in range(0, n-i):
-            if arr[j] > arr[j+1]:
-                arr[j], arr[j+1] = arr[j+1], arr[j]
-    return arr
-```
-
-The function should sort a list in ascending order but has a bug.
-Figure out what's wrong and provide the corrected version.
-
-Requirements:
-- Fix the bug(s) in the code
-- Function should sort [64, 34, 25, 12, 22, 11, 90] correctly
-- Must still be bubble sort algorithm
-                """,
-                hints=[
-                    "Look at the range in the inner loop - what happens when j reaches n-i?",
-                    "The inner loop goes one step too far and causes index out of bounds",
-                    "Change range(0, n-i) to range(0, n-i-1)"
-                ],
-                solution="def bubble_sort(arr):\n    n = len(arr)\n    for i in range(n):\n        for j in range(0, n-i-1):\n            if arr[j] > arr[j+1]:\n                arr[j], arr[j+1] = arr[j+1], arr[j]\n    return arr",
-                test_cases=[
-                    ([64, 34, 25, 12, 22, 11, 90], [11, 12, 22, 25, 34, 64, 90]),
-                    ([5, 2, 8, 1, 9], [1, 2, 5, 8, 9])
-                ]
-            )
-        ]
+        challenge_list = challenges.get(self.difficulty, challenges[Difficulty.EASY])
+        challenge = random.choice(challenge_list)
         
-        return self.execute_challenge(random.choice(challenges))
-    
-    def data_structure_challenge(self) -> GameResult:
-        """Advanced data structure implementation"""
-        challenges = [
-            Challenge(
-                description="📚 IMPLEMENT A STACK CLASS",
-                detailed_requirements="""
-Implement a Stack class with the following methods:
-
-- push(item): Add item to top of stack
-- pop(): Remove and return top item (return None if empty)
-- peek(): Return top item without removing (return None if empty)  
-- is_empty(): Return True if stack is empty
-- size(): Return number of items in stack
-
-Requirements:
-- Use a list internally to store items
-- Handle edge cases (popping from empty stack)
-- All methods should work correctly
-
-Your class will be tested with various operations.
-                """,
-                hints=[
-                    "Use self.items = [] to store the stack data",
-                    "push() should append to the list, pop() should remove from end",
-                    "Use len() for size and check if list is empty"
-                ],
-                solution="""class Stack:
-    def __init__(self):
-        self.items = []
-    
-    def push(self, item):
-        self.items.append(item)
-    
-    def pop(self):
-        return self.items.pop() if self.items else None
-    
-    def peek(self):
-        return self.items[-1] if self.items else None
-    
-    def is_empty(self):
-        return len(self.items) == 0
-    
-    def size(self):
-        return len(self.items)""",
-                test_cases=[
-                    # This will be tested differently due to class nature
-                ]
-            )
-        ]
+        print(f"\n{'='*60}")
+        print("🧠 ARRAY & MEMORY OPERATIONS CHALLENGE")
+        print(f"{'='*60}")
+        print(f"\n{challenge['description']}")
+        print(f"\n📝 Write your complete implementation below.")
+        print("💡 Type 'hint' for a hint, 'quit' to give up")
+        print("-" * 60)
         
-        challenge = random.choice(challenges)
-        
-        # Special handling for class implementation
-        print(f"\n{challenge.description}")
-        print("=" * 50)
-        print(challenge.detailed_requirements)
-        print("\nCommands:")
-        print("- Type 'hint' for a hint")
-        print("- Type 'quit' to give up")
-        print("- Enter your complete class definition")
-        print("-" * 50)
-        
-        self.current_hints_used = 0
         attempts = 0
+        hints_used = 0
         start_time = time.time()
-        time_limit = self.get_time_limit() * 2  # More time for class implementation
+        time_limit = self.get_time_limit()
         
         while True:
             attempts += 1
@@ -600,142 +374,349 @@ Your class will be tested with various operations.
             remaining = time_limit - elapsed
             
             if remaining <= 0:
-                print(f"\n⏰ Time's up! Here's the solution:")
-                print(f"```python\n{challenge.solution}\n```")
-                return GameResult(False, elapsed, attempts, self.current_hints_used)
+                print(f"\n⏰ Time's up!")
+                print(f"✅ Expected solution:")
+                print(challenge['expected_code'][0])
+                return GameResult(False, elapsed, attempts, hints_used)
             
             print(f"\n⏱️  Time remaining: {remaining:.1f}s | Attempt: {attempts}")
-            user_input = input(">>> ").strip()
+            user_input = input("Your code: ").strip()
+            
+            if user_input.lower() == 'quit':
+                print("Giving up? Here's the solution:")
+                print(challenge['expected_code'][0])
+                return GameResult(False, time.time() - start_time, attempts, hints_used)
             
             if user_input.lower() == 'hint':
-                self.show_hint(challenge.hints)
+                hints_used = self.show_hint(challenge['hints'], hints_used)
                 continue
-            elif user_input.lower() == 'quit':
-                print(f"\n🏳️  Solution:")
-                print(f"```python\n{challenge.solution}\n```")
-                return GameResult(False, elapsed, attempts, self.current_hints_used)
             
-            try:
-                # Test the Stack class
-                local_vars = {}
-                exec(user_input, {}, local_vars)
-                
-                if 'Stack' not in local_vars:
-                    print("❌ No Stack class found!")
-                    continue
-                
-                # Test the implementation
-                stack = local_vars['Stack']()
-                
-                # Test basic operations
-                tests_passed = 0
-                total_tests = 8
-                
-                # Test 1: Empty stack
-                if stack.is_empty() and stack.size() == 0:
-                    tests_passed += 1
-                
-                # Test 2: Push and size
-                stack.push(1)
-                if stack.size() == 1 and not stack.is_empty():
-                    tests_passed += 1
-                
-                # Test 3: Peek
-                if stack.peek() == 1:
-                    tests_passed += 1
-                
-                # Test 4: Push more items
-                stack.push(2)
-                stack.push(3)
-                if stack.size() == 3 and stack.peek() == 3:
-                    tests_passed += 1
-                
-                # Test 5: Pop
-                if stack.pop() == 3 and stack.size() == 2:
-                    tests_passed += 1
-                
-                # Test 6: Pop again
-                if stack.pop() == 2 and stack.peek() == 1:
-                    tests_passed += 1
-                
-                # Test 7: Pop last
-                if stack.pop() == 1 and stack.is_empty():
-                    tests_passed += 1
-                
-                # Test 8: Pop from empty
-                if stack.pop() is None and stack.peek() is None:
-                    tests_passed += 1
-                
-                print(f"✅ Passed {tests_passed}/{total_tests} tests")
-                
-                if tests_passed == total_tests:
-                    elapsed = time.time() - start_time
-                    print(f"\n🎉 PERFECT! All tests passed! Time: {elapsed:.2f}s, Attempts: {attempts}, Hints: {self.current_hints_used}")
-                    return GameResult(True, elapsed, attempts, self.current_hints_used)
-                    
-            except Exception as e:
-                print(f"❌ Error in your code: {e}")
+            if self.check_code_similarity(user_input, challenge['expected_code']):
+                elapsed = time.time() - start_time
+                print(f"\n🎉 Outstanding! Perfect memory management!")
+                print(f"⏱️  Time: {elapsed:.2f}s | Attempts: {attempts} | Hints: {hints_used}")
+                return GameResult(True, elapsed, attempts, hints_used)
+            else:
+                print("❌ Not quite right. Check your memory allocation and logic.")
+                if attempts >= 3:
+                    print("💡 Struggling? Type 'hint' for help!")
     
+    def string_implementation_challenge(self) -> GameResult:
+        """Implement string functions from scratch"""
+        challenges = {
+            Difficulty.EASY: [
+                {
+                    "description": """Implement your own strlen function.
+Function signature: int my_strlen(const char *str)
+
+Requirements:
+- Count characters until null terminator
+- Do not use any standard library functions
+- Return the length of the string""",
+                    "expected_code": [
+                        "int my_strlen(const char *str) { int len = 0; while (str[len] != '\\0') len++; return len; }",
+                        "int my_strlen(const char *str) { int len = 0; while (*str++) len++; return len; }",
+                        "int my_strlen(const char *str){int len=0;while(str[len])len++;return len;}"
+                    ],
+                    "hints": [
+                        "Start with a counter at 0",
+                        "Loop until you find the null terminator ('\\0')",
+                        "Increment counter for each character",
+                        "You can use str[len] or *(str + len) to access characters"
+                    ]
+                }
+            ],
+            Difficulty.MEDIUM: [
+                {
+                    "description": """Implement a function that removes all occurrences of a character from a string in-place.
+Function signature: void remove_char(char *str, char ch)
+
+Requirements:
+- Modify the string in-place (don't allocate new memory)
+- Remove all occurrences of the specified character
+- Maintain the order of remaining characters
+- Properly null-terminate the result""",
+                    "expected_code": [
+                        "void remove_char(char *str, char ch) { int write_pos = 0; for (int read_pos = 0; str[read_pos] != '\\0'; read_pos++) { if (str[read_pos] != ch) { str[write_pos++] = str[read_pos]; } } str[write_pos] = '\\0'; }",
+                        "void remove_char(char *str, char ch){int w=0;for(int r=0;str[r];r++){if(str[r]!=ch)str[w++]=str[r];}str[w]='\\0';}"
+                    ],
+                    "hints": [
+                        "Use two pointers: one for reading, one for writing",
+                        "Copy characters that don't match the target character",
+                        "Only advance write pointer when copying a character",
+                        "Don't forget to null-terminate at the end"
+                    ]
+                }
+            ],
+            Difficulty.HARD: [
+                {
+                    "description": """Implement a function that finds the longest common subsequence of two strings.
+Function signature: char* longest_common_subsequence(const char *str1, const char *str2)
+
+Requirements:
+- Return dynamically allocated string containing the LCS
+- Use dynamic programming approach
+- Handle empty strings and no common subsequence cases
+- Free any temporary memory used""",
+                    "expected_code": [
+                        "char* longest_common_subsequence(const char *str1, const char *str2) { int len1 = strlen(str1), len2 = strlen(str2); int **dp = malloc((len1+1) * sizeof(int*)); for(int i = 0; i <= len1; i++) dp[i] = calloc(len2+1, sizeof(int)); for(int i = 1; i <= len1; i++) { for(int j = 1; j <= len2; j++) { if(str1[i-1] == str2[j-1]) dp[i][j] = dp[i-1][j-1] + 1; else dp[i][j] = (dp[i-1][j] > dp[i][j-1]) ? dp[i-1][j] : dp[i][j-1]; } } int lcs_len = dp[len1][len2]; char *result = malloc(lcs_len + 1); result[lcs_len] = '\\0'; int i = len1, j = len2, k = lcs_len - 1; while(i > 0 && j > 0) { if(str1[i-1] == str2[j-1]) { result[k--] = str1[i-1]; i--; j--; } else if(dp[i-1][j] > dp[i][j-1]) i--; else j--; } for(int x = 0; x <= len1; x++) free(dp[x]); free(dp); return result; }"
+                    ],
+                    "hints": [
+                        "Create a 2D DP table: dp[i][j] = LCS length of str1[0..i-1] and str2[0..j-1]",
+                        "If characters match: dp[i][j] = dp[i-1][j-1] + 1",
+                        "If they don't match: dp[i][j] = max(dp[i-1][j], dp[i][j-1])",
+                        "Backtrack from dp[len1][len2] to construct the actual LCS string"
+                    ]
+                }
+            ]
+        }
+        
+        challenge_list = challenges.get(self.difficulty, challenges[Difficulty.EASY])
+        challenge = random.choice(challenge_list)
+        
+        print(f"\n{'='*60}")
+        print("📝 STRING IMPLEMENTATION CHALLENGE")
+        print(f"{'='*60}")
+        print(f"\n{challenge['description']}")
+        print(f"\n📝 Write your complete function below.")
+        print("💡 Type 'hint' for a hint, 'quit' to give up")
+        print("-" * 60)
+        
+        attempts = 0
+        hints_used = 0
+        start_time = time.time()
+        time_limit = self.get_time_limit()
+        
+        while True:
+            attempts += 1
+            elapsed = time.time() - start_time
+            remaining = time_limit - elapsed
+            
+            if remaining <= 0:
+                print(f"\n⏰ Time's up!")
+                print(f"✅ Expected solution:")
+                print(challenge['expected_code'][0])
+                return GameResult(False, elapsed, attempts, hints_used)
+            
+            print(f"\n⏱️  Time remaining: {remaining:.1f}s | Attempt: {attempts}")
+            user_input = input("Your code: ").strip()
+            
+            if user_input.lower() == 'quit':
+                print("Giving up? Here's the solution:")
+                print(challenge['expected_code'][0])
+                return GameResult(False, time.time() - start_time, attempts, hints_used)
+            
+            if user_input.lower() == 'hint':
+                hints_used = self.show_hint(challenge['hints'], hints_used)
+                continue
+            
+            if self.check_code_similarity(user_input, challenge['expected_code']):
+                elapsed = time.time() - start_time
+                print(f"\n🎉 Brilliant! String manipulation master!")
+                print(f"⏱️  Time: {elapsed:.2f}s | Attempts: {attempts} | Hints: {hints_used}")
+                return GameResult(True, elapsed, attempts, hints_used)
+            else:
+                print("❌ Not quite right. Check your string handling logic.")
+                if attempts >= 3:
+                    print("💡 Struggling? Type 'hint' for help!")
+    
+    def function_callback_challenge(self) -> GameResult:
+        """Advanced function and callback challenges"""
+        challenges = {
+            Difficulty.MEDIUM: [
+                {
+                    "description": """Implement a generic map function that applies a function to each element of an array.
+Function signature: void map_array(int *arr, int size, int (*func)(int))
+
+Requirements:
+- Apply the function to each element in-place
+- The function pointer takes an int and returns an int
+- Modify the original array
+
+Also implement a sample function: int double_value(int x) that doubles the input.""",
+                    "expected_code": [
+                        "int double_value(int x) { return x * 2; } void map_array(int *arr, int size, int (*func)(int)) { for (int i = 0; i < size; i++) { arr[i] = func(arr[i]); } }",
+                        "int double_value(int x){return x*2;}void map_array(int *arr, int size, int (*func)(int)){for(int i=0;i<size;i++)arr[i]=func(arr[i]);}"
+                    ],
+                    "hints": [
+                        "The function pointer syntax is: int (*func)(int)",
+                        "Call the function pointer like a normal function: func(arr[i])",
+                        "Loop through the array and apply the function to each element",
+                        "Store the result back in the same array position"
+                    ]
+                }
+            ],
+            Difficulty.HARD: [
+                {
+                    "description": """Implement a function that sorts an array using a custom comparison function.
+Function signature: void generic_sort(void *arr, int size, int elem_size, int (*compare)(const void*, const void*))
+
+Requirements:
+- Implement bubble sort algorithm
+- Work with void pointers for generic data
+- Use the comparison function to determine order
+- Swap elements using memcpy or similar
+
+Also implement: int int_compare(const void *a, const void *b) for comparing integers.""",
+                    "expected_code": [
+                        "int int_compare(const void *a, const void *b) { int ia = *(const int*)a; int ib = *(const int*)b; return (ia > ib) - (ia < ib); } void generic_sort(void *arr, int size, int elem_size, int (*compare)(const void*, const void*)) { char *base = (char*)arr; for (int i = 0; i < size - 1; i++) { for (int j = 0; j < size - i - 1; j++) { if (compare(base + j * elem_size, base + (j + 1) * elem_size) > 0) { char temp[elem_size]; memcpy(temp, base + j * elem_size, elem_size); memcpy(base + j * elem_size, base + (j + 1) * elem_size, elem_size); memcpy(base + (j + 1) * elem_size, temp, elem_size); } } } }"
+                    ],
+                    "hints": [
+                        "Cast void* to char* to do pointer arithmetic",
+                        "Each element is at position: base + i * elem_size",
+                        "Use memcpy to swap elements safely",
+                        "The compare function returns: <0 if a<b, 0 if a==b, >0 if a>b"
+                    ]
+                }
+            ]
+        }
+        
+        challenge_list = challenges.get(self.difficulty, challenges[Difficulty.MEDIUM])
+        challenge = random.choice(challenge_list)
+        
+        print(f"\n{'='*60}")
+        print("🔧 FUNCTION & CALLBACK DESIGN CHALLENGE")
+        print(f"{'='*60}")
+        print(f"\n{challenge['description']}")
+        print(f"\n📝 Write your complete implementation below.")
+        print("💡 Type 'hint' for a hint, 'quit' to give up")
+        print("-" * 60)
+        
+        attempts = 0
+        hints_used = 0
+        start_time = time.time()
+        time_limit = self.get_time_limit()
+        
+        while True:
+            attempts += 1
+            elapsed = time.time() - start_time
+            remaining = time_limit - elapsed
+            
+            if remaining <= 0:
+                print(f"\n⏰ Time's up!")
+                print(f"✅ Expected solution:")
+                print(challenge['expected_code'][0])
+                return GameResult(False, elapsed, attempts, hints_used)
+            
+            print(f"\n⏱️  Time remaining: {remaining:.1f}s | Attempt: {attempts}")
+            user_input = input("Your code: ").strip()
+            
+            if user_input.lower() == 'quit':
+                print("Giving up? Here's the solution:")
+                print(challenge['expected_code'][0])
+                return GameResult(False, time.time() - start_time, attempts, hints_used)
+            
+            if user_input.lower() == 'hint':
+                hints_used = self.show_hint(challenge['hints'], hints_used)
+                continue
+            
+            if self.check_code_similarity(user_input, challenge['expected_code']):
+                elapsed = time.time() - start_time
+                print(f"\n🎉 Exceptional! Function pointer mastery!")
+                print(f"⏱️  Time: {elapsed:.2f}s | Attempts: {attempts} | Hints: {hints_used}")
+                return GameResult(True, elapsed, attempts, hints_used)
+            else:
+                print("❌ Not quite right. Check your function pointer syntax and logic.")
+                if attempts >= 3:
+                    print("💡 Struggling? Type 'hint' for help!")
+
     def show_stats(self):
         """Show detailed game statistics"""
         if self.total_games == 0:
             accuracy = 0
         else:
-            accuracy = (self.score / self.total_games) * 100
+            accuracy = (self.score / (self.total_games * 100)) * 100  # Assuming max 100 points per game
         
-        print(f"\n=== TECHNICAL CODING STATISTICS ===")
-        print(f"Total Score: {self.score}")
-        print(f"Games Played: {self.total_games}")
-        print(f"Success Rate: {accuracy:.1f}%")
-        print(f"Current Difficulty: {self.difficulty.value}")
+        print(f"\n{'='*50}")
+        print("📊 TECHNICAL PROGRAMMING STATISTICS")
+        print(f"{'='*50}")
+        print(f"🏆 Total Score: {self.score}")
+        print(f"🎮 Games Played: {self.total_games}")
+        print(f"🎯 Success Rate: {accuracy:.1f}%")
+        print(f"⚙️  Current Difficulty: {self.difficulty.value.upper()}")
         
-        # Performance metrics
-        if accuracy >= 80:
-            print("🏆 EXPERT LEVEL - Outstanding performance!")
+        # Performance-based messages
+        if accuracy >= 90:
+            print("\n🔥 LEGENDARY C PROGRAMMER!")
+            print("   You're writing code like Linus Torvalds!")
+        elif accuracy >= 75:
+            print("\n💪 ADVANCED C DEVELOPER!")
+            print("   Your pointer skills are getting dangerous!")
         elif accuracy >= 60:
-            print("⭐ PROFICIENT - Keep up the good work!")
+            print("\n📈 SOLID PROGRESS!")
+            print("   You're mastering the dark arts of C!")
         elif accuracy >= 40:
-            print("📈 IMPROVING - You're getting there!")
+            print("\n🎯 KEEP PRACTICING!")
+            print("   Every segfault brings you closer to enlightenment!")
         else:
-            print("💪 LEARNING - Practice makes perfect!")
+            print("\n🔧 DEBUGGING MODE ACTIVATED!")
+            print("   Rome wasn't built in a day, neither was the Linux kernel!")
         
-        input("\nPress Enter to continue...")
+        print(f"\n{'='*50}")
+        input("Press Enter to continue your C mastery journey...")
     
     def update_score(self, result: GameResult):
-        """Update score based on game result with hint penalty"""
+        """Update score based on game result with detailed scoring"""
         self.total_games += 1
         if result.correct:
-            base_points = 15
-            time_bonus = max(0, int(10 - result.time_taken / 10))
-            attempt_penalty = (result.attempts - 1) * 2
-            hint_penalty = result.hints_used * 3
+            # Base points
+            base_points = 50
             
-            points = max(1, base_points + time_bonus - attempt_penalty - hint_penalty)
-            self.score += points
+            # Time bonus (faster = more points)
+            time_bonus = max(0, int(30 - result.time_taken))
+            
+            # Attempt bonus (fewer attempts = more points)
+            attempt_bonus = max(0, (5 - result.attempts) * 5)
+            
+            # Hint penalty (fewer hints = more points)
+            hint_penalty = result.hints_used * 5
+            
+            # Difficulty multiplier
+            difficulty_multiplier = {
+                Difficulty.NOOB: 1.0,
+                Difficulty.EASY: 1.2,
+                Difficulty.MEDIUM: 1.5,
+                Difficulty.HARD: 2.0,
+                Difficulty.NIGHTMARE: 2.5
+            }[self.difficulty]
+            
+            total_points = int((base_points + time_bonus + attempt_bonus - hint_penalty) * difficulty_multiplier)
+            total_points = max(10, total_points)  # Minimum 10 points
+            
+            self.score += total_points
+            
             print(f"\n🎯 SCORING BREAKDOWN:")
             print(f"   Base points: {base_points}")
-            print(f"   Time bonus: +{time_bonus}")
-            print(f"   Attempt penalty: -{attempt_penalty}")
-            print(f"   Hint penalty: -{hint_penalty}")
-            print(f"   Final score: {points} points!")
+            if time_bonus > 0:
+                print(f"   Speed bonus: +{time_bonus}")
+            if attempt_bonus > 0:
+                print(f"   Accuracy bonus: +{attempt_bonus}")
+            if hint_penalty > 0:
+                print(f"   Hint penalty: -{hint_penalty}")
+            print(f"   Difficulty multiplier: x{difficulty_multiplier}")
+            print(f"   🏆 Total earned: {total_points} points!")
         else:
-            print("❌ No points this time. Keep practicing!")
+            print("\n💀 No points this time. Real programmers learn from their mistakes!")
     
     def run(self):
         """Main game loop"""
         games = {
-            "1": self.list_comprehension_challenge,
-            "2": self.dictionary_challenge,
-            "3": self.string_challenge,
-            "4": self.function_challenge,
-            "5": self.algorithm_challenge,
-            "6": self.bug_hunt_challenge,
-            "7": self.data_structure_challenge,
+            "1": self.pointer_mastery_challenge,
+            "2": self.array_memory_challenge,
+            "3": self.string_implementation_challenge,
+            "4": self.function_callback_challenge,
+            # Placeholder for additional challenges
+            "5": self.array_memory_challenge,  # Reuse for now
+            "6": self.string_implementation_challenge,  # Reuse for now
+            "7": self.function_callback_challenge,  # Reuse for now
+            "8": self.pointer_mastery_challenge,  # Reuse for now
+            "9": self.array_memory_challenge,  # Reuse for now
         }
         
-        print("🚀 Welcome to Python Be Good - Technical Edition!")
-        print("Master Python through hands-on coding challenges!")
-        print("💡 Pro tip: Type 'hint' during any challenge for help!")
+        print("🚀 Welcome to C Be Good - Technical Edition!")
+        print("💻 Where real programmers come to sharpen their skills!")
+        print("⚡ Write actual C code to solve challenging problems!")
+        print("🧠 From pointers to memory management - code your way to mastery!")
         
         while True:
             self.clear_screen()
@@ -743,30 +724,34 @@ Your class will be tested with various operations.
             choice = self.show_menu()
             
             if choice == "q":
-                print("\n🎓 Thanks for practicing with Python Be Good!")
-                print(f"Final Score: {self.score} | Games Played: {self.total_games}")
-                if self.score > 100:
-                    print("🏆 Excellent coding skills demonstrated!")
+                print(f"\n🎯 Thanks for coding with C Be Good!")
+                print(f"📊 Final Score: {self.score} | Games Completed: {self.total_games}")
+                if self.total_games > 0:
+                    avg_score = self.score / self.total_games
+                    print(f"📈 Average Score: {avg_score:.1f} points per challenge")
+                print("🔥 Keep practicing, and may your pointers always point true! 🔥")
                 break
-            elif choice == "8":
+            elif choice == "10":
                 self.set_difficulty()
-            elif choice == "9":
+            elif choice == "11":
                 self.show_stats()
             elif choice in games:
-                print(f"\n🔥 Preparing technical challenge... Get ready to code!")
+                print(f"\n🎯 Loading technical challenge...")
+                print(f"💡 Remember: Type 'hint' for help, 'quit' to give up")
+                print(f"⚡ Challenge difficulty: {self.difficulty.value.upper()}")
                 time.sleep(2)
                 result = games[choice]()
                 self.update_score(result)
-                input("\nPress Enter to continue...")
+                input("\n🚀 Press Enter to continue your programming journey...")
             
             time.sleep(1)
 
 if __name__ == "__main__":
-    game = PythonBeGood()
+    game = CBeGood()
     try:
         game.run()
     except KeyboardInterrupt:
-        print("\n\nGame interrupted. Thanks for coding!")
+        print("\n\n💻 Challenge interrupted! Come back when you're ready to code!")
     except Exception as e:
-        print(f"\nAn error occurred: {e}")
-        print("Thanks for practicing!")
+        print(f"\n❌ Runtime error occurred: {e}")
+        print("🔧 Even the best programmers encounter bugs. Try again!")
