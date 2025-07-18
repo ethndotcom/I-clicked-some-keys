@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 """
-Java Be Good - A game to practice Java programming skills
-Inspired by ThePrimeagen's vim-be-good
+Java Be Good - Technical Coding Edition
+A hands-on game to practice Java programming through actual code writing
+Inspired by ThePrimeagen's vim-be-good but focused on deep Java mastery
 """
 
 import random
 import time
 import os
 import sys
-from typing import List, Dict, Any, Callable
+import re
+from typing import List, Dict, Any, Callable, Optional
 from dataclasses import dataclass
 from enum import Enum
 
 class Difficulty(Enum):
     NOOB = "noob"
-    EASY = "easy"
+    EASY = "easy" 
     MEDIUM = "medium"
     HARD = "hard"
     NIGHTMARE = "nightmare"
@@ -24,12 +26,14 @@ class GameResult:
     correct: bool
     time_taken: float
     attempts: int
+    hints_used: int
 
 class JavaBeGood:
     def __init__(self):
         self.score = 0
         self.total_games = 0
         self.difficulty = Difficulty.EASY
+        self.hints_used_total = 0
         
     def clear_screen(self):
         """Clear the terminal screen"""
@@ -39,35 +43,35 @@ class JavaBeGood:
         """Print the game banner"""
         banner = """
 ╔═══════════════════════════════════════╗
-║             JAVA BE GOOD              ║
-║       Master Object-Oriented          ║
-║           Programming!                ║
+║         JAVA BE GOOD - TECH           ║
+║       Write Real Code, Master         ║
+║       Object-Oriented Programming     ║
 ╚═══════════════════════════════════════╝
         """
         print(banner)
-        print(f"Score: {self.score} | Games Played: {self.total_games} | Difficulty: {self.difficulty.value}")
-        print("-" * 40)
+        print(f"Score: {self.score} | Games: {self.total_games} | Hints Used: {self.hints_used_total} | Difficulty: {self.difficulty.value}")
+        print("-" * 45)
     
     def show_menu(self) -> str:
         """Show main menu and get user choice"""
         options = {
-            "1": "OOP Concepts",
-            "2": "Collections Framework", 
-            "3": "Exception Handling",
-            "4": "Inheritance & Polymorphism",
-            "5": "Interfaces & Abstract Classes",
-            "6": "Java Syntax & Keywords",
-            "7": "Generics & Types",
-            "8": "Lambda & Streams",
-            "9": "Design Patterns",
-            "10": "Bug Hunt",
-            "11": "Code Completion",
+            "1": "Class Implementation Challenges",
+            "2": "Collection Operations & Data Structures", 
+            "3": "Exception Handling & Error Management",
+            "4": "Inheritance & Polymorphism Deep Dive",
+            "5": "Interface & Abstract Class Architecture",
+            "6": "Generic Programming & Type Safety",
+            "7": "Lambda & Stream API Mastery",
+            "8": "Design Pattern Implementation",
+            "9": "Algorithm & Logic Challenges",
+            "10": "Bug Hunt & Code Refactoring",
+            "11": "Advanced Java Features",
             "12": "Change Difficulty",
             "13": "View Stats",
             "q": "Quit"
         }
         
-        print("\nChoose your challenge:")
+        print("\nChoose your coding challenge:")
         for key, value in options.items():
             print(f"{key:2}. {value}")
         
@@ -80,8 +84,16 @@ class JavaBeGood:
     def set_difficulty(self):
         """Allow user to change difficulty"""
         print("\nSelect difficulty:")
+        descriptions = {
+            Difficulty.NOOB: "Basic syntax and simple implementations",
+            Difficulty.EASY: "Standard OOP concepts with guidance", 
+            Difficulty.MEDIUM: "Complex scenarios requiring deeper understanding",
+            Difficulty.HARD: "Advanced patterns and optimization challenges",
+            Difficulty.NIGHTMARE: "Expert-level architecture and performance"
+        }
+        
         for i, diff in enumerate(Difficulty, 1):
-            print(f"{i}. {diff.value.title()}")
+            print(f"{i}. {diff.value.title()}: {descriptions[diff]}")
         
         try:
             choice = int(input("Enter choice (1-5): "))
@@ -98,1120 +110,1176 @@ class JavaBeGood:
     def get_time_limit(self) -> float:
         """Get time limit based on difficulty"""
         limits = {
-            Difficulty.NOOB: 120.0,
-            Difficulty.EASY: 60.0,
-            Difficulty.MEDIUM: 35.0,
-            Difficulty.HARD: 25.0,
-            Difficulty.NIGHTMARE: 15.0
+            Difficulty.NOOB: 300.0,    # 5 minutes
+            Difficulty.EASY: 240.0,    # 4 minutes
+            Difficulty.MEDIUM: 180.0,  # 3 minutes
+            Difficulty.HARD: 120.0,    # 2 minutes
+            Difficulty.NIGHTMARE: 90.0 # 1.5 minutes
         }
         return limits[self.difficulty]
     
-    def oop_concepts_challenge(self) -> GameResult:
-        """Challenge user with OOP concepts"""
+    def show_hint(self, hints: List[str], hints_used: int) -> int:
+        """Show progressive hints"""
+        if hints_used >= len(hints):
+            print("No more hints available!")
+            return hints_used
+        
+        print(f"\n💡 HINT {hints_used + 1}: {hints[hints_used]}")
+        return hints_used + 1
+    
+    def normalize_code(self, code: str) -> str:
+        """Normalize code for comparison by removing extra whitespace and formatting"""
+        # Remove comments
+        code = re.sub(r'//.*?\n', '\n', code)
+        code = re.sub(r'/\*.*?\*/', '', code, flags=re.DOTALL)
+        
+        # Normalize whitespace
+        code = re.sub(r'\s+', ' ', code.strip())
+        code = re.sub(r'\s*([{}();,])\s*', r'\1', code)
+        code = re.sub(r'\s*([=+\-*/])\s*', r' \1 ', code)
+        
+        return code.lower()
+    
+    def check_code_similarity(self, user_code: str, expected_patterns: List[str]) -> bool:
+        """Check if user code matches expected patterns"""
+        normalized_user = self.normalize_code(user_code)
+        
+        for pattern in expected_patterns:
+            normalized_pattern = self.normalize_code(pattern)
+            if normalized_pattern in normalized_user:
+                return True
+        
+        return False
+    
+    def class_implementation_challenge(self) -> GameResult:
+        """Challenge user to implement complete classes"""
         challenges = [
             {
-                "description": "Which keyword is used to inherit from a class in Java?",
-                "answer": "extends",
-                "options": ["extends", "inherits", "implements", "super"]
-            },
-            {
-                "description": "What access modifier allows access within the same package?",
-                "answer": "protected",
-                "options": ["private", "protected", "public", "default"],
-                "explanation": "protected allows access within package and subclasses"
-            },
-            {
-                "description": "Which principle hides internal implementation details?",
-                "answer": "Encapsulation",
-                "options": ["Encapsulation", "Inheritance", "Polymorphism", "Abstraction"],
-                "explanation": "Encapsulation bundles data and methods, hiding internal details"
-            },
-            {
-                "description": "What keyword creates an object instance?",
-                "answer": "new",
-                "options": ["new", "create", "instance", "make"]
-            },
-            {
-                "description": "Which method is called when an object is created?",
-                "answer": "Constructor",
-                "options": ["Constructor", "init()", "create()", "main()"],
-                "explanation": "Constructor has same name as class and no return type"
-            },
-            {
-                "description": "What does 'this' keyword refer to?",
-                "answer": "Current object instance",
-                "options": [
-                    "Current object instance",
-                    "Parent class",
-                    "Static context",
-                    "Method parameter"
+                "title": "Implement a Thread-Safe Singleton Pattern",
+                "description": """
+Create a thread-safe Singleton class called 'DatabaseManager' with the following requirements:
+1. Private constructor
+2. Static method getInstance() that returns the single instance
+3. Thread-safe implementation (use synchronized or other concurrency techniques)
+4. Private static instance variable
+5. A method connect() that prints "Database connected"
+
+Your class should handle concurrent access properly and ensure only one instance exists.
+                """,
+                "hints": [
+                    "Use a private static variable to hold the instance",
+                    "Make getInstance() synchronized or use double-checked locking",
+                    "Remember to make the constructor private",
+                    "Consider using 'volatile' keyword for the instance variable",
+                    "Double-checked locking pattern: check null, sync, check null again"
                 ],
-                "explanation": "'this' refers to the current object instance"
+                "expected_patterns": [
+                    "private static DatabaseManager instance",
+                    "private DatabaseManager()",
+                    "public static synchronized DatabaseManager getInstance()",
+                    "public static DatabaseManager getInstance()",
+                    "public void connect()"
+                ],
+                "validation_keywords": ["private", "static", "synchronized", "getInstance", "DatabaseManager"]
+            },
+            {
+                "title": "Generic Repository Pattern Implementation",
+                "description": """
+Implement a generic Repository class with the following specifications:
+1. Generic class Repository<T> where T is the entity type
+2. Private List<T> to store entities
+3. Method add(T entity) to add entities
+4. Method findById(int id) that returns T (assume entities have getId() method)
+5. Method findAll() that returns List<T>
+6. Method remove(int id) that returns boolean (true if removed)
+
+Your implementation should be type-safe and handle null values appropriately.
+                """,
+                "hints": [
+                    "Use <T> after class name to make it generic",
+                    "Initialize the List<T> in constructor",
+                    "Use instanceof or try-catch for type checking if needed",
+                    "Remember to handle the case where entity is not found",
+                    "Use generics properly: List<T>, not List"
+                ],
+                "expected_patterns": [
+                    "class Repository<T>",
+                    "private List<T>",
+                    "public void add(T entity)",
+                    "public T findById(int id)",
+                    "public List<T> findAll()",
+                    "public boolean remove(int id)"
+                ],
+                "validation_keywords": ["Repository<T>", "List<T>", "add", "findById", "findAll", "remove"]
+            },
+            {
+                "title": "Observer Pattern with Custom Events",
+                "description": """
+Implement the Observer pattern with the following components:
+1. Interface 'Observer' with method update(String event)
+2. Class 'EventPublisher' that maintains list of observers
+3. Methods: addObserver(Observer o), removeObserver(Observer o), notifyObservers(String event)
+4. Class 'LogObserver' that implements Observer and prints log messages
+5. Demonstrate usage by creating publisher, adding observer, and triggering events
+
+Focus on proper decoupling and type safety.
+                """,
+                "hints": [
+                    "Start with the Observer interface - just one method",
+                    "EventPublisher should have List<Observer> as instance variable", 
+                    "notifyObservers should iterate through all observers and call update()",
+                    "LogObserver's update method should print the event message",
+                    "Don't forget to handle null checks in your observer list operations"
+                ],
+                "expected_patterns": [
+                    "interface Observer",
+                    "void update(String event)",
+                    "class EventPublisher",
+                    "List<Observer>",
+                    "addObserver(Observer o)",
+                    "notifyObservers(String event)",
+                    "class LogObserver implements Observer"
+                ],
+                "validation_keywords": ["Observer", "EventPublisher", "update", "addObserver", "notifyObservers", "implements"]
             }
         ]
         
+        if self.difficulty == Difficulty.NIGHTMARE:
+            challenges.extend([
+                {
+                    "title": "Concurrent Producer-Consumer with BlockingQueue",
+                    "description": """
+Implement a thread-safe Producer-Consumer pattern:
+1. Class 'DataProcessor' with BlockingQueue<String> buffer
+2. Inner class 'Producer' extends Thread, generates data every 100ms
+3. Inner class 'Consumer' extends Thread, processes data with 200ms delay
+4. Method startProcessing() that starts both threads
+5. Proper shutdown mechanism with interrupt handling
+6. Buffer should have maximum capacity of 10 items
+
+Handle all concurrency concerns and graceful shutdown.
+                    """,
+                    "hints": [
+                        "Use ArrayBlockingQueue<String> with capacity 10",
+                        "Producer should use queue.put() to add items",
+                        "Consumer should use queue.take() to remove items",
+                        "Handle InterruptedException in both producer and consumer",
+                        "Use Thread.sleep() for delays, check Thread.currentThread().isInterrupted()"
+                    ],
+                    "expected_patterns": [
+                        "BlockingQueue<String>",
+                        "class Producer extends Thread",
+                        "class Consumer extends Thread", 
+                        "queue.put(",
+                        "queue.take(",
+                        "InterruptedException"
+                    ],
+                    "validation_keywords": ["BlockingQueue", "Producer", "Consumer", "Thread", "put", "take"]
+                }
+            ])
+        
         challenge = random.choice(challenges)
-        print(f"\nOOP Concepts Challenge:")
-        print(f"{challenge['description']}")
+        print(f"\n🎯 {challenge['title']}")
+        print("=" * 50)
+        print(challenge['description'])
+        print("\n📝 Write your complete Java implementation:")
+        print("(Type 'hint' for a hint, 'done' when finished)")
         
-        if 'options' in challenge:
-            for i, option in enumerate(challenge['options'], 1):
-                print(f"{i}. {option}")
-        
+        user_code = ""
+        hints_used = 0
         attempts = 0
         start_time = time.time()
         time_limit = self.get_time_limit()
         
         while True:
-            attempts += 1
             elapsed = time.time() - start_time
             remaining = time_limit - elapsed
             
             if remaining <= 0:
-                print(f"\nTime's up! Answer: {challenge['answer']}")
-                if 'explanation' in challenge:
-                    print(f"Explanation: {challenge['explanation']}")
-                return GameResult(False, elapsed, attempts)
+                print(f"\n⏰ Time's up!")
+                print("Here's a sample solution approach:")
+                for pattern in challenge['expected_patterns'][:3]:
+                    print(f"  - {pattern}")
+                return GameResult(False, elapsed, attempts, hints_used)
             
-            print(f"\nTime remaining: {remaining:.1f}s")
-            user_input = input("Your answer: ").strip()
+            print(f"\n⏱️  Time remaining: {remaining:.1f}s")
+            line = input(">>> ").strip()
             
-            # Handle numbered choices
-            if 'options' in challenge and user_input.isdigit():
-                choice_num = int(user_input) - 1
-                if 0 <= choice_num < len(challenge['options']):
-                    user_input = challenge['options'][choice_num]
-            
-            if user_input.lower() == challenge['answer'].lower():
-                elapsed = time.time() - start_time
-                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
-                if 'explanation' in challenge:
-                    print(f"Explanation: {challenge['explanation']}")
-                return GameResult(True, elapsed, attempts)
+            if line.lower() == 'hint':
+                hints_used = self.show_hint(challenge['hints'], hints_used)
+                continue
+            elif line.lower() == 'done':
+                attempts += 1
+                break
             else:
-                print("Incorrect! Try again.")
+                user_code += line + "\n"
+        
+        # Validate the solution
+        pattern_matches = sum(1 for pattern in challenge['expected_patterns'] 
+                            if self.normalize_code(pattern) in self.normalize_code(user_code))
+        keyword_matches = sum(1 for keyword in challenge['validation_keywords']
+                            if keyword.lower() in user_code.lower())
+        
+        total_checks = len(challenge['expected_patterns']) + len(challenge['validation_keywords'])
+        total_matches = pattern_matches + keyword_matches
+        score_percentage = (total_matches / total_checks) * 100
+        
+        elapsed = time.time() - start_time
+        
+        if score_percentage >= 70:  # 70% threshold for success
+            print(f"\n✅ Excellent implementation! Score: {score_percentage:.1f}%")
+            print(f"Pattern matches: {pattern_matches}/{len(challenge['expected_patterns'])}")
+            print(f"Keyword matches: {keyword_matches}/{len(challenge['validation_keywords'])}")
+            return GameResult(True, elapsed, attempts, hints_used)
+        else:
+            print(f"\n❌ Implementation needs work. Score: {score_percentage:.1f}%")
+            print(f"Pattern matches: {pattern_matches}/{len(challenge['expected_patterns'])}")
+            print(f"Required patterns you might be missing:")
+            for pattern in challenge['expected_patterns']:
+                if self.normalize_code(pattern) not in self.normalize_code(user_code):
+                    print(f"  - {pattern}")
+            return GameResult(False, elapsed, attempts, hints_used)
     
     def collections_challenge(self) -> GameResult:
-        """Challenge user with Java Collections Framework"""
+        """Challenge user with advanced collection operations"""
         challenges = [
             {
-                "description": "Which interface is implemented by ArrayList?",
-                "answer": "List",
-                "options": ["List", "Set", "Map", "Queue"],
-                "explanation": "ArrayList implements the List interface"
-            },
-            {
-                "description": "How do you create an ArrayList of Strings?",
-                "answer": "ArrayList<String> list = new ArrayList<>();",
-                "alternatives": [
-                    "ArrayList<String> list = new ArrayList<>();",
-                    "ArrayList<String> list = new ArrayList<String>();",
-                    "List<String> list = new ArrayList<>();"
-                ]
-            },
-            {
-                "description": "Which collection doesn't allow duplicate elements?",
-                "answer": "Set",
-                "options": ["List", "Set", "Queue", "ArrayList"],
-                "explanation": "Set interface doesn't allow duplicate elements"
-            },
-            {
-                "description": "How do you add an element to a List?",
-                "answer": "add()",
-                "options": ["add()", "put()", "insert()", "append()"]
-            },
-            {
-                "description": "Which Map method retrieves a value by key?",
-                "answer": "get()",
-                "options": ["get()", "retrieve()", "find()", "value()"]
-            },
-            {
-                "description": "What's the difference between ArrayList and LinkedList?",
-                "answer": "ArrayList uses array, LinkedList uses nodes",
-                "options": [
-                    "ArrayList uses array, LinkedList uses nodes",
-                    "No difference",
-                    "ArrayList is slower",
-                    "LinkedList is always better"
+                "title": "Custom HashMap Implementation with Collision Handling",
+                "description": """
+Implement a simplified HashMap class 'MyHashMap<K,V>' with:
+1. Internal array of Entry<K,V> objects (use separate chaining for collisions)
+2. Static nested class Entry<K,V> with key, value, and next fields
+3. Methods: put(K key, V value), get(K key), remove(K key), size()
+4. Proper hashCode() calculation and collision handling via linked lists
+5. Initial capacity of 16, resize when load factor > 0.75
+
+Focus on handling hash collisions and maintaining O(1) average time complexity.
+                """,
+                "hints": [
+                    "Use array of Entry<K,V>[], not List",
+                    "Calculate index with: hash(key) % array.length",
+                    "Handle collisions by chaining entries in linked list",
+                    "Entry class needs: K key, V value, Entry<K,V> next",
+                    "For put(): find bucket, traverse chain, update or add new entry"
                 ],
-                "explanation": "ArrayList: fast random access, LinkedList: fast insertion/deletion"
+                "expected_patterns": [
+                    "class MyHashMap<K,V>",
+                    "Entry<K,V>[]",
+                    "static class Entry<K,V>",
+                    "put(K key, V value)",
+                    "get(K key)",
+                    "Entry<K,V> next"
+                ],
+                "validation_keywords": ["HashMap", "Entry", "hashCode", "put", "get", "next", "chain"]
             },
             {
-                "description": "Which is thread-safe: Vector or ArrayList?",
-                "answer": "Vector",
-                "options": ["Vector", "ArrayList", "Both", "Neither"],
-                "explanation": "Vector is synchronized (thread-safe), ArrayList is not"
+                "title": "Thread-Safe Bounded Queue Implementation",
+                "description": """
+Create a thread-safe bounded queue 'SafeQueue<T>' using:
+1. Internal circular array with head and tail pointers
+2. ReentrantLock for thread safety
+3. Condition variables for blocking when full/empty
+4. Methods: offer(T item, long timeout), poll(long timeout), size(), isEmpty()
+5. Proper timeout handling and interrupt support
+6. Fixed capacity provided in constructor
+
+Ensure thread safety without busy waiting.
+                """,
+                "hints": [
+                    "Use ReentrantLock lock = new ReentrantLock()",
+                    "Create conditions: notFull = lock.newCondition(), notEmpty = lock.newCondition()",
+                    "Always use lock.lock() and lock.unlock() in try-finally",
+                    "Use condition.await(timeout, TimeUnit) for blocking operations",
+                    "Signal conditions when state changes: notFull.signal(), notEmpty.signal()"
+                ],
+                "expected_patterns": [
+                    "class SafeQueue<T>",
+                    "ReentrantLock",
+                    "Condition",
+                    "offer(T item, long timeout)",
+                    "poll(long timeout)",
+                    "await(timeout"
+                ],
+                "validation_keywords": ["SafeQueue", "ReentrantLock", "Condition", "await", "signal", "timeout"]
             }
         ]
         
         challenge = random.choice(challenges)
-        print(f"\nCollections Framework Challenge:")
-        print(f"{challenge['description']}")
+        print(f"\n🎯 {challenge['title']}")
+        print("=" * 50)
+        print(challenge['description'])
+        print("\n📝 Write your complete Java implementation:")
+        print("(Type 'hint' for a hint, 'done' when finished)")
         
-        if 'options' in challenge:
-            for i, option in enumerate(challenge['options'], 1):
-                print(f"{i}. {option}")
-        
-        attempts = 0
-        start_time = time.time()
-        time_limit = self.get_time_limit()
-        
-        while True:
-            attempts += 1
-            elapsed = time.time() - start_time
-            remaining = time_limit - elapsed
-            
-            if remaining <= 0:
-                print(f"\nTime's up! Answer: {challenge['answer']}")
-                if 'explanation' in challenge:
-                    print(f"Explanation: {challenge['explanation']}")
-                return GameResult(False, elapsed, attempts)
-            
-            print(f"\nTime remaining: {remaining:.1f}s")
-            user_input = input("Your answer: ").strip()
-            
-            # Handle numbered choices
-            if 'options' in challenge and user_input.isdigit():
-                choice_num = int(user_input) - 1
-                if 0 <= choice_num < len(challenge['options']):
-                    user_input = challenge['options'][choice_num]
-            
-            # Check alternatives if they exist
-            if 'alternatives' in challenge:
-                correct = any(user_input.lower().replace(" ", "") == alt.lower().replace(" ", "") 
-                             for alt in challenge['alternatives'])
-            else:
-                correct = user_input.lower() == challenge['answer'].lower()
-            
-            if correct:
-                elapsed = time.time() - start_time
-                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
-                if 'explanation' in challenge:
-                    print(f"Explanation: {challenge['explanation']}")
-                return GameResult(True, elapsed, attempts)
-            else:
-                print("Incorrect! Try again.")
+        return self._run_coding_challenge(challenge)
     
     def exception_handling_challenge(self) -> GameResult:
-        """Challenge user with exception handling"""
+        """Advanced exception handling scenarios"""
         challenges = [
             {
-                "description": "Which keyword is used to handle exceptions?",
-                "answer": "try",
-                "options": ["try", "catch", "handle", "exception"]
-            },
-            {
-                "description": "What comes after a try block?",
-                "answer": "catch",
-                "options": ["catch", "finally", "handle", "except"],
-                "explanation": "try block is followed by catch or finally"
-            },
-            {
-                "description": "Which block always executes, even if exception occurs?",
-                "answer": "finally",
-                "options": ["try", "catch", "finally", "always"],
-                "explanation": "finally block executes regardless of exceptions"
-            },
-            {
-                "description": "How do you throw a custom exception?",
-                "answer": "throw new Exception()",
-                "alternatives": [
-                    "throw new Exception()",
-                    "throw new Exception(\"message\")",
-                    "throw new CustomException()"
-                ]
-            },
-            {
-                "description": "What's the parent class of all exceptions?",
-                "answer": "Throwable",
-                "options": ["Exception", "Throwable", "Error", "Object"],
-                "explanation": "Throwable is the superclass of all exceptions and errors"
-            },
-            {
-                "description": "Which exception is thrown for array index out of bounds?",
-                "answer": "ArrayIndexOutOfBoundsException",
-                "alternatives": [
-                    "ArrayIndexOutOfBoundsException",
-                    "IndexOutOfBoundsException"
-                ]
-            },
-            {
-                "description": "What's the difference between Error and Exception?",
-                "answer": "Error is for serious system problems",
-                "options": [
-                    "Error is for serious system problems",
-                    "No difference",
-                    "Exception is worse than Error",
-                    "Error can be caught easily"
+                "title": "Custom Exception Hierarchy with Recovery Strategies",
+                "description": """
+Create a robust exception handling system for a file processing application:
+1. Abstract class 'ProcessingException' extends Exception
+2. Subclasses: 'FileNotFoundException', 'CorruptedFileException', 'ProcessingTimeoutException'
+3. Class 'FileProcessor' with method processFile(String filename) that:
+   - Throws appropriate exceptions based on conditions
+   - Implements retry logic with exponential backoff
+   - Has recovery strategies for each exception type
+4. Method should attempt up to 3 retries with increasing delay
+5. Include proper exception chaining and detailed error messages
+
+Demonstrate comprehensive error handling with recovery mechanisms.
+                """,
+                "hints": [
+                    "Use 'throw new ExceptionType(message, cause)' for exception chaining",
+                    "Implement retry with: for(int attempt = 0; attempt < maxRetries; attempt++)",
+                    "Use Thread.sleep(delay * (2 ^ attempt)) for exponential backoff",
+                    "Catch specific exceptions and handle each differently",
+                    "Always include the original exception as the cause in chains"
                 ],
-                "explanation": "Error indicates serious problems that applications shouldn't catch"
+                "expected_patterns": [
+                    "abstract class ProcessingException extends Exception",
+                    "class FileNotFoundException extends ProcessingException", 
+                    "class CorruptedFileException extends ProcessingException",
+                    "processFile(String filename) throws",
+                    "for(int attempt",
+                    "Thread.sleep(",
+                    "throw new"
+                ],
+                "validation_keywords": ["ProcessingException", "throws", "retry", "attempt", "sleep", "catch"]
+            },
+            {
+                "title": "Resource Management with Try-With-Resources",
+                "description": """
+Implement automatic resource management system:
+1. Interface 'ManagedResource' extends AutoCloseable
+2. Class 'DatabaseConnection' implements ManagedResource with:
+   - connect() method that may throw SQLException
+   - executeQuery(String sql) that returns ResultSet simulation
+   - Proper cleanup in close() method
+3. Class 'ResourceManager' with method executeWithRetry() that:
+   - Uses try-with-resources syntax
+   - Implements retry logic for failed operations
+   - Handles multiple resource types safely
+4. Demonstrate nested try-with-resources for multiple resources
+
+Focus on proper resource cleanup and exception propagation.
+                """,
+                "hints": [
+                    "ManagedResource should extend AutoCloseable interface",
+                    "Use try(ResourceType resource = new ResourceType()) syntax",
+                    "close() method should handle cleanup and potential exceptions",
+                    "For multiple resources: try(Resource1 r1 = ...; Resource2 r2 = ...)",
+                    "Exceptions in close() are suppressed and added to main exception"
+                ],
+                "expected_patterns": [
+                    "interface ManagedResource extends AutoCloseable",
+                    "class DatabaseConnection implements ManagedResource",
+                    "try(",
+                    "close()",
+                    "executeQuery(String sql)",
+                    "SQLException"
+                ],
+                "validation_keywords": ["ManagedResource", "AutoCloseable", "try-with-resources", "close", "SQLException"]
             }
         ]
         
         challenge = random.choice(challenges)
-        print(f"\nException Handling Challenge:")
-        print(f"{challenge['description']}")
+        print(f"\n🎯 {challenge['title']}")
+        print("=" * 50)
+        print(challenge['description'])
+        print("\n📝 Write your complete Java implementation:")
+        print("(Type 'hint' for a hint, 'done' when finished)")
         
-        if 'options' in challenge:
-            for i, option in enumerate(challenge['options'], 1):
-                print(f"{i}. {option}")
-        
-        attempts = 0
-        start_time = time.time()
-        time_limit = self.get_time_limit()
-        
-        while True:
-            attempts += 1
-            elapsed = time.time() - start_time
-            remaining = time_limit - elapsed
-            
-            if remaining <= 0:
-                print(f"\nTime's up! Answer: {challenge['answer']}")
-                if 'explanation' in challenge:
-                    print(f"Explanation: {challenge['explanation']}")
-                return GameResult(False, elapsed, attempts)
-            
-            print(f"\nTime remaining: {remaining:.1f}s")
-            user_input = input("Your answer: ").strip()
-            
-            # Handle numbered choices
-            if 'options' in challenge and user_input.isdigit():
-                choice_num = int(user_input) - 1
-                if 0 <= choice_num < len(challenge['options']):
-                    user_input = challenge['options'][choice_num]
-            
-            # Check alternatives if they exist
-            if 'alternatives' in challenge:
-                correct = any(user_input.lower().replace(" ", "") == alt.lower().replace(" ", "") 
-                             for alt in challenge['alternatives'])
-            else:
-                correct = user_input.lower() == challenge['answer'].lower()
-            
-            if correct:
-                elapsed = time.time() - start_time
-                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
-                if 'explanation' in challenge:
-                    print(f"Explanation: {challenge['explanation']}")
-                return GameResult(True, elapsed, attempts)
-            else:
-                print("Incorrect! Try again.")
+        return self._run_coding_challenge(challenge)
     
     def inheritance_polymorphism_challenge(self) -> GameResult:
-        """Challenge user with inheritance and polymorphism"""
+        """Deep dive into inheritance and polymorphism"""
         challenges = [
             {
-                "description": "Which keyword calls parent class constructor?",
-                "answer": "super()",
-                "alternatives": ["super()", "super", "parent()", "base()"]
-            },
-            {
-                "description": "What's method overriding?",
-                "answer": "Redefining parent method in child class",
-                "options": [
-                    "Redefining parent method in child class",
-                    "Having multiple methods with same name",
-                    "Calling parent method",
-                    "Creating new method"
+                "title": "Abstract Factory Pattern with Multiple Product Families",
+                "description": """
+Implement a complete Abstract Factory pattern for UI components:
+1. Abstract class 'UIComponent' with abstract method render()
+2. Abstract class 'UIFactory' with abstract methods: createButton(), createTextField()
+3. Concrete classes: 'WindowsButton', 'MacButton', 'WindowsTextField', 'MacTextField'
+4. Concrete factories: 'WindowsUIFactory', 'MacUIFactory'
+5. Class 'Application' that uses factory to create UI without knowing specific types
+6. Demonstrate polymorphic behavior with different factory implementations
+
+Show how abstract factory enables creating families of related objects.
+                """,
+                "hints": [
+                    "UIComponent is base class for all UI elements",
+                    "Each concrete component (WindowsButton, etc.) extends UIComponent",
+                    "Factory methods return UIComponent types, not concrete types",
+                    "Application class should work with abstract factory and components",
+                    "Use polymorphism: UIComponent component = factory.createButton()"
                 ],
-                "explanation": "Overriding provides specific implementation in subclass"
-            },
-            {
-                "description": "What's method overloading?",
-                "answer": "Multiple methods with same name, different parameters",
-                "options": [
-                    "Multiple methods with same name, different parameters",
-                    "Redefining parent method",
-                    "Calling multiple methods",
-                    "Loading methods dynamically"
+                "expected_patterns": [
+                    "abstract class UIComponent",
+                    "abstract void render()",
+                    "abstract class UIFactory",
+                    "abstract UIComponent createButton()",
+                    "class WindowsButton extends UIComponent",
+                    "class WindowsUIFactory extends UIFactory",
+                    "UIComponent component = factory.createButton()"
                 ],
-                "explanation": "Overloading allows multiple methods with same name but different signatures"
+                "validation_keywords": ["abstract", "extends", "UIComponent", "UIFactory", "polymorphism", "factory"]
             },
             {
-                "description": "Which annotation indicates method overriding?",
-                "answer": "@Override",
-                "options": ["@Override", "@Overload", "@Super", "@Inherit"]
-            },
-            {
-                "description": "What does 'instanceof' operator check?",
-                "answer": "If object is instance of specific class",
-                "options": [
-                    "If object is instance of specific class",
-                    "If two objects are equal",
-                    "If class exists",
-                    "If method exists"
+                "title": "Template Method Pattern with Hooks",
+                "description": """
+Create a Template Method pattern for data processing pipeline:
+1. Abstract class 'DataProcessor' with template method process()
+2. Template method calls: loadData(), validateData(), transformData(), saveData()
+3. Abstract methods: loadData(), saveData() (must be implemented by subclasses)
+4. Concrete methods: validateData() (default implementation)
+5. Hook method: shouldTransform() (default returns true, can be overridden)
+6. Concrete classes: 'CSVProcessor', 'JSONProcessor' with specific implementations
+7. Demonstrate how template method controls algorithm flow
+
+Show how template method defines skeleton while allowing customization.
+                """,
+                "hints": [
+                    "Template method 'process()' should call other methods in sequence",
+                    "Abstract methods force subclasses to provide implementations",
+                    "Hook methods provide optional customization points",
+                    "Use 'final' for template method to prevent overriding",
+                    "validateData() can have default implementation that subclasses can override"
                 ],
-                "explanation": "instanceof checks if object is instance of particular class or interface"
-            },
-            {
-                "description": "Can you override static methods?",
-                "answer": "No",
-                "options": ["Yes", "No", "Sometimes", "Only in subclasses"],
-                "explanation": "Static methods belong to class, not instance, so can't be overridden"
-            },
-            {
-                "description": "What's runtime polymorphism achieved through?",
-                "answer": "Method overriding",
-                "options": ["Method overriding", "Method overloading", "Inheritance", "Interfaces"],
-                "explanation": "Runtime polymorphism is achieved through method overriding and dynamic method dispatch"
+                "expected_patterns": [
+                    "abstract class DataProcessor",
+                    "final void process()",
+                    "abstract void loadData()",
+                    "abstract void saveData()",
+                    "boolean shouldTransform()",
+                    "class CSVProcessor extends DataProcessor",
+                    "if(shouldTransform())"
+                ],
+                "validation_keywords": ["abstract", "final", "template", "hook", "process", "extends"]
             }
         ]
         
         challenge = random.choice(challenges)
-        print(f"\nInheritance & Polymorphism Challenge:")
-        print(f"{challenge['description']}")
+        print(f"\n🎯 {challenge['title']}")
+        print("=" * 50)
+        print(challenge['description'])
+        print("\n📝 Write your complete Java implementation:")
+        print("(Type 'hint' for a hint, 'done' when finished)")
         
-        if 'options' in challenge:
-            for i, option in enumerate(challenge['options'], 1):
-                print(f"{i}. {option}")
-        
-        attempts = 0
-        start_time = time.time()
-        time_limit = self.get_time_limit()
-        
-        while True:
-            attempts += 1
-            elapsed = time.time() - start_time
-            remaining = time_limit - elapsed
-            
-            if remaining <= 0:
-                print(f"\nTime's up! Answer: {challenge['answer']}")
-                if 'explanation' in challenge:
-                    print(f"Explanation: {challenge['explanation']}")
-                return GameResult(False, elapsed, attempts)
-            
-            print(f"\nTime remaining: {remaining:.1f}s")
-            user_input = input("Your answer: ").strip()
-            
-            # Handle numbered choices
-            if 'options' in challenge and user_input.isdigit():
-                choice_num = int(user_input) - 1
-                if 0 <= choice_num < len(challenge['options']):
-                    user_input = challenge['options'][choice_num]
-            
-            # Check alternatives if they exist
-            if 'alternatives' in challenge:
-                correct = any(user_input.lower().replace(" ", "") == alt.lower().replace(" ", "") 
-                             for alt in challenge['alternatives'])
-            else:
-                correct = user_input.lower() == challenge['answer'].lower()
-            
-            if correct:
-                elapsed = time.time() - start_time
-                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
-                if 'explanation' in challenge:
-                    print(f"Explanation: {challenge['explanation']}")
-                return GameResult(True, elapsed, attempts)
-            else:
-                print("Incorrect! Try again.")
+        return self._run_coding_challenge(challenge)
     
     def interfaces_abstract_challenge(self) -> GameResult:
-        """Challenge user with interfaces and abstract classes"""
+        """Interface and abstract class architecture challenges"""
         challenges = [
             {
-                "description": "Which keyword is used to implement an interface?",
-                "answer": "implements",
-                "options": ["implements", "extends", "uses", "adopts"]
-            },
-            {
-                "description": "Can an interface have method implementations? (Java 8+)",
-                "answer": "Yes, default and static methods",
-                "options": [
-                    "Yes, default and static methods",
-                    "No, never",
-                    "Only static methods",
-                    "Only default methods"
+                "title": "Strategy Pattern with Functional Interfaces",
+                "description": """
+Implement Strategy pattern using modern Java features:
+1. Functional interface 'PaymentStrategy' with method processPayment(double amount)
+2. Class 'PaymentProcessor' that accepts PaymentStrategy in constructor
+3. Method processOrder(double amount) that delegates to strategy
+4. Implement strategies as lambda expressions for: CreditCard, PayPal, BankTransfer
+5. Create static factory methods in PaymentStrategy interface for each type
+6. Demonstrate usage with method references and lambda expressions
+
+Combine traditional pattern with functional programming concepts.
+                """,
+                "hints": [
+                    "Use @FunctionalInterface annotation for PaymentStrategy",
+                    "PaymentStrategy has single abstract method: void processPayment(double amount)",
+                    "Static factory methods: static PaymentStrategy creditCard(), paypal(), etc.",
+                    "Return lambdas from factory methods: () -> { /* implementation */ }",
+                    "PaymentProcessor stores strategy and delegates calls to it"
                 ],
-                "explanation": "Java 8+ allows default and static methods in interfaces"
-            },
-            {
-                "description": "What keyword declares an abstract class?",
-                "answer": "abstract",
-                "options": ["abstract", "interface", "virtual", "pure"]
-            },
-            {
-                "description": "Can you instantiate an abstract class?",
-                "answer": "No",
-                "options": ["Yes", "No", "Sometimes", "Only with new keyword"],
-                "explanation": "Abstract classes cannot be instantiated directly"
-            },
-            {
-                "description": "How many interfaces can a class implement?",
-                "answer": "Multiple",
-                "options": ["One", "Two", "Multiple", "None"],
-                "explanation": "Java supports multiple interface implementation"
-            },
-            {
-                "description": "What's a functional interface?",
-                "answer": "Interface with exactly one abstract method",
-                "options": [
-                    "Interface with exactly one abstract method",
-                    "Interface with multiple methods",
-                    "Interface with no methods",
-                    "Interface with only default methods"
+                "expected_patterns": [
+                    "@FunctionalInterface",
+                    "interface PaymentStrategy",
+                    "void processPayment(double amount)",
+                    "static PaymentStrategy creditCard()",
+                    "class PaymentProcessor",
+                    "PaymentStrategy strategy",
+                    "strategy.processPayment(amount)"
                 ],
-                "explanation": "Functional interfaces have exactly one abstract method (SAM)"
+                "validation_keywords": ["@FunctionalInterface", "PaymentStrategy", "lambda", "static", "processPayment"]
             },
             {
-                "description": "Which annotation marks a functional interface?",
-                "answer": "@FunctionalInterface",
-                "options": ["@FunctionalInterface", "@Functional", "@Lambda", "@SAM"]
+                "title": "Composite Pattern with Tree Structure Operations",
+                "description": """
+Build a file system using Composite pattern:
+1. Abstract class 'FileSystemNode' with methods: getName(), getSize(), display(int depth)
+2. Class 'File' extends FileSystemNode (leaf component)
+3. Class 'Directory' extends FileSystemNode (composite component)
+4. Directory maintains List<FileSystemNode> children
+5. Methods: addChild(FileSystemNode node), removeChild(String name), findNode(String name)
+6. Implement recursive operations: calculateTotalSize(), findLargestFile()
+7. Display method should show tree structure with proper indentation
+
+Demonstrate how composite pattern handles tree structures uniformly.
+                """,
+                "hints": [
+                    "FileSystemNode is abstract base for both files and directories",
+                    "File is leaf node - getSize() returns actual file size",
+                    "Directory is composite - getSize() sums all children's sizes",
+                    "Use recursion in Directory's methods to traverse children",
+                    "display() should use depth parameter for indentation: '  '.repeat(depth)"
+                ],
+                "expected_patterns": [
+                    "abstract class FileSystemNode",
+                    "abstract long getSize()",
+                    "class File extends FileSystemNode",
+                    "class Directory extends FileSystemNode",
+                    "List<FileSystemNode> children",
+                    "addChild(FileSystemNode node)",
+                    "for(FileSystemNode child : children)"
+                ],
+                "validation_keywords": ["abstract", "FileSystemNode", "composite", "children", "recursive", "addChild"]
             }
         ]
         
         challenge = random.choice(challenges)
-        print(f"\nInterfaces & Abstract Classes Challenge:")
-        print(f"{challenge['description']}")
+        print(f"\n🎯 {challenge['title']}")
+        print("=" * 50)
+        print(challenge['description'])
+        print("\n📝 Write your complete Java implementation:")
+        print("(Type 'hint' for a hint, 'done' when finished)")
         
-        if 'options' in challenge:
-            for i, option in enumerate(challenge['options'], 1):
-                print(f"{i}. {option}")
-        
-        attempts = 0
-        start_time = time.time()
-        time_limit = self.get_time_limit()
-        
-        while True:
-            attempts += 1
-            elapsed = time.time() - start_time
-            remaining = time_limit - elapsed
-            
-            if remaining <= 0:
-                print(f"\nTime's up! Answer: {challenge['answer']}")
-                if 'explanation' in challenge:
-                    print(f"Explanation: {challenge['explanation']}")
-                return GameResult(False, elapsed, attempts)
-            
-            print(f"\nTime remaining: {remaining:.1f}s")
-            user_input = input("Your answer: ").strip()
-            
-            # Handle numbered choices
-            if 'options' in challenge and user_input.isdigit():
-                choice_num = int(user_input) - 1
-                if 0 <= choice_num < len(challenge['options']):
-                    user_input = challenge['options'][choice_num]
-            
-            if user_input.lower() == challenge['answer'].lower():
-                elapsed = time.time() - start_time
-                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
-                if 'explanation' in challenge:
-                    print(f"Explanation: {challenge['explanation']}")
-                return GameResult(True, elapsed, attempts)
-            else:
-                print("Incorrect! Try again.")
-    
-    def java_syntax_quiz(self) -> GameResult:
-        """Quiz about Java syntax and keywords"""
-        questions = [
-            {
-                "question": "Which is the correct main method signature?",
-                "options": [
-                    "A) public static void main(String[] args)",
-                    "B) public void main(String args)",
-                    "C) static void main(String[] args)",
-                    "D) public main(String[] args)"
-                ],
-                "answer": "A"
-            },
-            {
-                "question": "What's the default value of a boolean field?",
-                "options": ["A) true", "B) false", "C) null", "D) 0"],
-                "answer": "B"
-            },
-            {
-                "question": "Which keyword prevents inheritance?",
-                "options": ["A) static", "B) final", "C) private", "D) const"],
-                "answer": "B"
-            },
-            {
-                "question": "What does 'static' mean for a method?",
-                "options": [
-                    "A) Belongs to class, not instance",
-                    "B) Cannot be overridden",
-                    "C) Is abstract",
-                    "D) Is private"
-                ],
-                "answer": "A"
-            },
-            {
-                "question": "Which is NOT a primitive type?",
-                "options": ["A) int", "B) String", "C) boolean", "D) char"],
-                "answer": "B"
-            },
-            {
-                "question": "What's the size of int in Java?",
-                "options": ["A) 16 bits", "B) 32 bits", "C) 64 bits", "D) Platform dependent"],
-                "answer": "B"
-            },
-            {
-                "question": "Which loop ensures at least one execution?",
-                "options": ["A) for", "B) while", "C) do-while", "D) foreach"],
-                "answer": "C"
-            }
-        ]
-        
-        question = random.choice(questions)
-        print(f"\nJava Syntax Quiz:")
-        print(f"Question: {question['question']}")
-        for option in question['options']:
-            print(option)
-        
-        attempts = 0
-        start_time = time.time()
-        time_limit = self.get_time_limit() / 2
-        
-        while True:
-            attempts += 1
-            elapsed = time.time() - start_time
-            remaining = time_limit - elapsed
-            
-            if remaining <= 0:
-                print(f"\nTime's up! The answer was: {question['answer']}")
-                return GameResult(False, elapsed, attempts)
-            
-            print(f"\nTime remaining: {remaining:.1f}s")
-            user_input = input("Your answer (A/B/C/D): ").strip().upper()
-            
-            if user_input == question['answer']:
-                elapsed = time.time() - start_time
-                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
-                return GameResult(True, elapsed, attempts)
-            elif user_input in ['A', 'B', 'C', 'D']:
-                print("Incorrect! Try again.")
-            else:
-                print("Please enter A, B, C, or D")
+        return self._run_coding_challenge(challenge)
     
     def generics_challenge(self) -> GameResult:
-        """Challenge user with Java Generics"""
+        """Advanced generics and type safety challenges"""
         challenges = [
             {
-                "description": "How do you declare a generic class with type parameter T?",
-                "answer": "public class MyClass<T>",
-                "alternatives": [
-                    "public class MyClass<T>",
-                    "public class MyClass<T> {",
-                    "class MyClass<T>"
-                ]
-            },
-            {
-                "description": "What does List<?> mean?",
-                "answer": "List of unknown type",
-                "options": [
-                    "List of unknown type",
-                    "List of Object",
-                    "Empty list",
-                    "Syntax error"
+                "title": "Generic Repository with Type-Safe Specifications",
+                "description": """
+Create an advanced generic repository with specifications:
+1. Interface 'Specification<T>' with method isSatisfiedBy(T entity)
+2. Class 'GenericRepository<T, ID>' with methods:
+   - save(T entity), findById(ID id), findAll(Specification<T> spec)
+   - findFirst(Specification<T> spec), count(Specification<T> spec)
+3. Implement specifications as lambda expressions or classes
+4. Generic method <R> List<R> findAndTransform(Specification<T> spec, Function<T, R> mapper)
+5. Demonstrate with concrete entity class and various specifications
+6. Use bounded wildcards appropriately: ? extends, ? super
+
+Show advanced generic concepts with real-world repository pattern.
+                """,
+                "hints": [
+                    "Specification<T> is functional interface with boolean isSatisfiedBy(T entity)",
+                    "Use Function<T, R> for transformation in findAndTransform method",
+                    "Bounded wildcards: ? extends T for reading, ? super T for writing",
+                    "Stream API works well with specifications: stream().filter(spec::isSatisfiedBy)",
+                    "Generic method syntax: <R> ReturnType methodName(...)"
                 ],
-                "explanation": "? is wildcard representing unknown type"
-            },
-            {
-                "description": "What's the difference between List<Object> and List<?>?",
-                "answer": "List<?> is read-only for elements",
-                "options": [
-                    "List<?> is read-only for elements",
-                    "No difference",
-                    "List<Object> is faster",
-                    "List<?> allows any type"
+                "expected_patterns": [
+                    "interface Specification<T>",
+                    "boolean isSatisfiedBy(T entity)",
+                    "class GenericRepository<T, ID>",
+                    "<R> List<R> findAndTransform",
+                    "Function<T, R> mapper",
+                    "Specification<T> spec",
+                    "spec.isSatisfiedBy("
                 ],
-                "explanation": "List<?> doesn't allow adding elements (except null)"
-            },
-            {
-                "description": "What does <T extends Number> mean?",
-                "answer": "T must be Number or its subclass",
-                "options": [
-                    "T must be Number or its subclass",
-                    "T inherits from Number",
-                    "T is exactly Number",
-                    "T extends Number class"
-                ],
-                "explanation": "Bounded type parameter: T is upper-bounded by Number"
-            },
-            {
-                "description": "Can you use primitives as generic type arguments?",
-                "answer": "No, use wrapper classes",
-                "options": [
-                    "No, use wrapper classes",
-                    "Yes, directly",
-                    "Only int and boolean",
-                    "Yes, with casting"
-                ],
-                "explanation": "Generics work only with reference types, not primitives"
-            },
-            {
-                "description": "What's type erasure?",
-                "answer": "Generic type info removed at runtime",
-                "options": [
-                    "Generic type info removed at runtime",
-                    "Deleting generic code",
-                    "Compiler error",
-                    "Runtime type checking"
-                ],
-                "explanation": "Java removes generic type information at runtime for backward compatibility"
+                "validation_keywords": ["Specification", "GenericRepository", "Function", "mapper", "bounded", "wildcard"]
             }
         ]
         
         challenge = random.choice(challenges)
-        print(f"\nGenerics & Types Challenge:")
-        print(f"{challenge['description']}")
+        print(f"\n🎯 {challenge['title']}")
+        print("=" * 50)
+        print(challenge['description'])
+        print("\n📝 Write your complete Java implementation:")
+        print("(Type 'hint' for a hint, 'done' when finished)")
         
-        if 'options' in challenge:
-            for i, option in enumerate(challenge['options'], 1):
-                print(f"{i}. {option}")
-        
-        attempts = 0
-        start_time = time.time()
-        time_limit = self.get_time_limit()
-        
-        while True:
-            attempts += 1
-            elapsed = time.time() - start_time
-            remaining = time_limit - elapsed
-            
-            if remaining <= 0:
-                print(f"\nTime's up! Answer: {challenge['answer']}")
-                if 'explanation' in challenge:
-                    print(f"Explanation: {challenge['explanation']}")
-                return GameResult(False, elapsed, attempts)
-            
-            print(f"\nTime remaining: {remaining:.1f}s")
-            user_input = input("Your answer: ").strip()
-            
-            # Handle numbered choices
-            if 'options' in challenge and user_input.isdigit():
-                choice_num = int(user_input) - 1
-                if 0 <= choice_num < len(challenge['options']):
-                    user_input = challenge['options'][choice_num]
-            
-            # Check alternatives if they exist
-            if 'alternatives' in challenge:
-                correct = any(user_input.lower().replace(" ", "") == alt.lower().replace(" ", "") 
-                             for alt in challenge['alternatives'])
-            else:
-                correct = user_input.lower() == challenge['answer'].lower()
-            
-            if correct:
-                elapsed = time.time() - start_time
-                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
-                if 'explanation' in challenge:
-                    print(f"Explanation: {challenge['explanation']}")
-                return GameResult(True, elapsed, attempts)
-            else:
-                print("Incorrect! Try again.")
+        return self._run_coding_challenge(challenge)
     
     def lambda_streams_challenge(self) -> GameResult:
-        """Challenge user with Lambda expressions and Streams"""
+        """Advanced lambda and stream operations"""
         challenges = [
             {
-                "description": "How do you write a lambda that takes x and returns x * 2?",
-                "answer": "x -> x * 2",
-                "alternatives": ["x -> x * 2", "(x) -> x * 2", "x -> { return x * 2; }"]
-            },
-            {
-                "description": "Which method creates a stream from a list?",
-                "answer": "stream()",
-                "options": ["stream()", "toStream()", "asStream()", "getStream()"]
-            },
-            {
-                "description": "What does filter() do in streams?",
-                "answer": "Selects elements matching a condition",
-                "options": [
-                    "Selects elements matching a condition",
-                    "Transforms elements",
-                    "Counts elements",
-                    "Sorts elements"
+                "title": "Custom Collector Implementation for Advanced Grouping",
+                "description": """
+Implement a custom Collector for advanced data processing:
+1. Create Collector<Person, ?, Map<String, PersonStatistics>> using Collector.of()
+2. PersonStatistics class with: count, averageAge, totalSalary, oldestPerson
+3. Group persons by department and calculate comprehensive statistics
+4. Implement all Collector methods: supplier(), accumulator(), combiner(), finisher()
+5. Use parallel processing capabilities - ensure thread safety
+6. Demonstrate with stream of Person objects and parallel processing
+
+Show deep understanding of Collector internals and parallel stream processing.
+                """,
+                "hints": [
+                    "Collector.of() takes: supplier, accumulator, combiner, finisher, characteristics",
+                    "Supplier creates new Map<String, PersonStatistics>",
+                    "Accumulator updates statistics for each person",
+                    "Combiner merges two maps from parallel processing",
+                    "Use Collector.Characteristics.CONCURRENT for thread safety"
                 ],
-                "explanation": "filter() keeps elements that match the predicate"
-            },
-            {
-                "description": "What does map() do in streams?",
-                "answer": "Transforms each element",
-                "options": [
-                    "Transforms each element",
-                    "Filters elements",
-                    "Counts elements",
-                    "Groups elements"
+                "expected_patterns": [
+                    "Collector.of(",
+                    "supplier()",
+                    "accumulator()",
+                    "combiner()",
+                    "finisher()",
+                    "Map<String, PersonStatistics>",
+                    "Collector.Characteristics.CONCURRENT"
                 ],
-                "explanation": "map() applies a function to transform each element"
+                "validation_keywords": ["Collector", "supplier", "accumulator", "combiner", "statistics", "parallel"]
             },
             {
-                "description": "How do you collect stream results to a List?",
-                "answer": "collect(Collectors.toList())",
-                "alternatives": [
-                    "collect(Collectors.toList())",
-                    ".toList()",
-                    "collect(toList())"
-                ]
-            },
-            {
-                "description": "What's a method reference for System.out::println?",
-                "answer": "Lambda that prints the argument",
-                "options": [
-                    "Lambda that prints the argument",
-                    "Static method call",
-                    "Constructor reference",
-                    "Field access"
+                "title": "Functional Pipeline with Error Handling",
+                "description": """
+Create a robust functional processing pipeline:
+1. Generic class 'Result<T>' with success/failure states (similar to Optional)
+2. Methods: map(), flatMap(), filter(), orElse(), ifPresent()
+3. Static factory methods: success(T value), failure(String error)
+4. Pipeline class 'DataPipeline<T>' that chains operations safely
+5. Implement operations: validate(), transform(), save() returning Result<T>
+6. Demonstrate with complex data processing that handles errors gracefully
+
+Build a monadic error handling system using functional programming.
+                """,
+                "hints": [
+                    "Result<T> should wrap either value or error message",
+                    "map() should only apply function if result is success",
+                    "flatMap() handles Result-returning functions",
+                    "Use isSuccess() boolean to check state",
+                    "Chain operations with fluent interface: result.map().filter().flatMap()"
                 ],
-                "explanation": "System.out::println is equivalent to x -> System.out.println(x)"
-            },
-            {
-                "description": "Which is a terminal operation in streams?",
-                "answer": "collect()",
-                "options": ["filter()", "map()", "collect()", "peek()"],
-                "explanation": "Terminal operations like collect() end the stream processing"
+                "expected_patterns": [
+                    "class Result<T>",
+                    "static Result<T> success(T value)",
+                    "static Result<T> failure(String error)",
+                    "Result<R> map(Function<T, R> mapper)",
+                    "Result<R> flatMap(Function<T, Result<R>> mapper)",
+                    "boolean isSuccess()",
+                    "class DataPipeline<T>"
+                ],
+                "validation_keywords": ["Result", "success", "failure", "map", "flatMap", "pipeline", "monadic"]
             }
         ]
         
         challenge = random.choice(challenges)
-        print(f"\nLambda & Streams Challenge:")
-        print(f"{challenge['description']}")
+        print(f"\n🎯 {challenge['title']}")
+        print("=" * 50)
+        print(challenge['description'])
+        print("\n📝 Write your complete Java implementation:")
+        print("(Type 'hint' for a hint, 'done' when finished)")
         
-        if 'options' in challenge:
-            for i, option in enumerate(challenge['options'], 1):
-                print(f"{i}. {option}")
-        
-        attempts = 0
-        start_time = time.time()
-        time_limit = self.get_time_limit()
-        
-        while True:
-            attempts += 1
-            elapsed = time.time() - start_time
-            remaining = time_limit - elapsed
-            
-            if remaining <= 0:
-                print(f"\nTime's up! Answer: {challenge['answer']}")
-                if 'explanation' in challenge:
-                    print(f"Explanation: {challenge['explanation']}")
-                return GameResult(False, elapsed, attempts)
-            
-            print(f"\nTime remaining: {remaining:.1f}s")
-            user_input = input("Your answer: ").strip()
-            
-            # Handle numbered choices
-            if 'options' in challenge and user_input.isdigit():
-                choice_num = int(user_input) - 1
-                if 0 <= choice_num < len(challenge['options']):
-                    user_input = challenge['options'][choice_num]
-            
-            # Check alternatives if they exist
-            if 'alternatives' in challenge:
-                correct = any(user_input.lower().replace(" ", "") == alt.lower().replace(" ", "") 
-                             for alt in challenge['alternatives'])
-            else:
-                correct = user_input.lower() == challenge['answer'].lower()
-            
-            if correct:
-                elapsed = time.time() - start_time
-                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
-                if 'explanation' in challenge:
-                    print(f"Explanation: {challenge['explanation']}")
-                return GameResult(True, elapsed, attempts)
-            else:
-                print("Incorrect! Try again.")
+        return self._run_coding_challenge(challenge)
     
     def design_patterns_challenge(self) -> GameResult:
-        """Challenge user with common design patterns"""
+        """Complex design pattern implementations"""
         challenges = [
             {
-                "description": "Which pattern ensures only one instance of a class?",
-                "answer": "Singleton",
-                "options": ["Singleton", "Factory", "Observer", "Strategy"]
-            },
-            {
-                "description": "What pattern creates objects without specifying exact classes?",
-                "answer": "Factory",
-                "options": ["Factory", "Builder", "Prototype", "Singleton"],
-                "explanation": "Factory pattern creates objects through common interface"
-            },
-            {
-                "description": "Which pattern notifies multiple objects about state changes?",
-                "answer": "Observer",
-                "options": ["Observer", "Strategy", "Command", "State"],
-                "explanation": "Observer pattern implements publish-subscribe mechanism"
-            },
-            {
-                "description": "What pattern encapsulates algorithms and makes them interchangeable?",
-                "answer": "Strategy",
-                "options": ["Strategy", "State", "Command", "Template Method"],
-                "explanation": "Strategy pattern defines family of algorithms and makes them interchangeable"
-            },
-            {
-                "description": "Which pattern constructs complex objects step by step?",
-                "answer": "Builder",
-                "options": ["Builder", "Factory", "Prototype", "Abstract Factory"],
-                "explanation": "Builder pattern constructs complex objects using step-by-step approach"
-            },
-            {
-                "description": "What pattern provides simplified interface to complex subsystem?",
-                "answer": "Facade",
-                "options": ["Facade", "Adapter", "Bridge", "Proxy"],
-                "explanation": "Facade pattern provides unified interface to set of interfaces in subsystem"
+                "title": "Command Pattern with Undo/Redo and Macro Commands",
+                "description": """
+Implement comprehensive Command pattern with advanced features:
+1. Interface 'Command' with methods: execute(), undo(), getDescription()
+2. Abstract class 'UndoableCommand' implements Command with undo support
+3. Commands: 'CreateFileCommand', 'DeleteFileCommand', 'EditFileCommand'
+4. Class 'MacroCommand' that executes multiple commands as one unit
+5. Class 'CommandInvoker' with methods: execute(), undo(), redo(), createMacro()
+6. Maintain command history with undo/redo stack (use Deque)
+7. Implement command queuing and batch execution
+
+Show command pattern with full undo/redo capabilities and macro support.
+                """,
+                "hints": [
+                    "Use Deque<Command> for undo stack and redo stack",
+                    "MacroCommand contains List<Command> and executes all in order",
+                    "For undo in MacroCommand, iterate commands in reverse order",
+                    "CommandInvoker maintains current position in command history",
+                    "Each command should store state needed for undo operation"
+                ],
+                "expected_patterns": [
+                    "interface Command",
+                    "void execute()",
+                    "void undo()",
+                    "abstract class UndoableCommand implements Command",
+                    "class MacroCommand implements Command",
+                    "List<Command> commands",
+                    "Deque<Command>",
+                    "class CommandInvoker"
+                ],
+                "validation_keywords": ["Command", "execute", "undo", "redo", "MacroCommand", "Deque", "history"]
             }
         ]
         
         challenge = random.choice(challenges)
-        print(f"\nDesign Patterns Challenge:")
-        print(f"{challenge['description']}")
+        print(f"\n🎯 {challenge['title']}")
+        print("=" * 50)
+        print(challenge['description'])
+        print("\n📝 Write your complete Java implementation:")
+        print("(Type 'hint' for a hint, 'done' when finished)")
         
-        if 'options' in challenge:
-            for i, option in enumerate(challenge['options'], 1):
-                print(f"{i}. {option}")
+        return self._run_coding_challenge(challenge)
+    
+    def algorithm_challenge(self) -> GameResult:
+        """Algorithm and logic implementation challenges"""
+        challenges = [
+            {
+                "title": "Implement Binary Search Tree with Balancing",
+                "description": """
+Create a self-balancing Binary Search Tree (AVL Tree):
+1. Class 'AVLNode<T>' with: data, left, right, height fields
+2. Class 'AVLTree<T extends Comparable<T>>' with insert/delete/search operations
+3. Methods: insert(T data), delete(T data), search(T data), getHeight()
+4. Implement rotations: rotateLeft(), rotateRight(), getBalance()
+5. Auto-balance after each insert/delete operation
+6. Method printInOrder() for tree traversal verification
+7. Include size() and isEmpty() methods
+
+Demonstrate understanding of tree algorithms and self-balancing.
+                """,
+                "hints": [
+                    "Height of node = 1 + max(height(left), height(right))",
+                    "Balance factor = height(left) - height(right), should be -1, 0, or 1",
+                    "Left rotation: newRoot = node.right, node.right = newRoot.left, newRoot.left = node",
+                    "Rebalance when balance factor is < -1 or > 1",
+                    "Update heights after rotations"
+                ],
+                "expected_patterns": [
+                    "class AVLNode<T>",
+                    "class AVLTree<T extends Comparable<T>>",
+                    "int getHeight(AVLNode<T> node)",
+                    "int getBalance(AVLNode<T> node)",
+                    "AVLNode<T> rotateLeft(AVLNode<T> node)",
+                    "AVLNode<T> rotateRight(AVLNode<T> node)",
+                    "insert(T data)",
+                    "Math.max(getHeight("
+                ],
+                "validation_keywords": ["AVLTree", "balance", "rotate", "height", "Comparable", "insert", "delete"]
+            },
+            {
+                "title": "Concurrent Graph Traversal with Thread Pool",
+                "description": """
+Implement parallel graph traversal algorithm:
+1. Class 'Graph<T>' with adjacency list representation
+2. Thread-safe methods: addVertex(T vertex), addEdge(T from, T to)
+3. Parallel BFS using ExecutorService and ConcurrentHashMap
+4. Method parallelBFS(T start, Function<T, Boolean> processor)
+5. Ensure each vertex is processed exactly once across all threads
+6. Implement proper synchronization and result collection
+7. Handle graph cycles and disconnected components
+
+Show concurrent programming with complex data structures.
+                """,
+                "hints": [
+                    "Use ConcurrentHashMap<T, List<T>> for adjacency list",
+                    "ExecutorService with fixed thread pool for parallel processing",
+                    "AtomicBoolean or ConcurrentHashMap to track visited vertices",
+                    "BlockingQueue for thread-safe vertex queue management",
+                    "CompletableFuture.allOf() to wait for all tasks completion"
+                ],
+                "expected_patterns": [
+                    "class Graph<T>",
+                    "ConcurrentHashMap<T, List<T>>",
+                    "ExecutorService",
+                    "parallelBFS(T start",
+                    "Function<T, Boolean> processor",
+                    "AtomicBoolean",
+                    "BlockingQueue<T>",
+                    "CompletableFuture"
+                ],
+                "validation_keywords": ["Graph", "parallel", "BFS", "ExecutorService", "ConcurrentHashMap", "thread-safe"]
+            }
+        ]
         
-        attempts = 0
-        start_time = time.time()
-        time_limit = self.get_time_limit()
+        challenge = random.choice(challenges)
+        print(f"\n🎯 {challenge['title']}")
+        print("=" * 50)
+        print(challenge['description'])
+        print("\n📝 Write your complete Java implementation:")
+        print("(Type 'hint' for a hint, 'done' when finished)")
         
-        while True:
-            attempts += 1
-            elapsed = time.time() - start_time
-            remaining = time_limit - elapsed
-            
-            if remaining <= 0:
-                print(f"\nTime's up! Answer: {challenge['answer']}")
-                if 'explanation' in challenge:
-                    print(f"Explanation: {challenge['explanation']}")
-                return GameResult(False, elapsed, attempts)
-            
-            print(f"\nTime remaining: {remaining:.1f}s")
-            user_input = input("Your answer: ").strip()
-            
-            # Handle numbered choices
-            if 'options' in challenge and user_input.isdigit():
-                choice_num = int(user_input) - 1
-                if 0 <= choice_num < len(challenge['options']):
-                    user_input = challenge['options'][choice_num]
-            
-            if user_input.lower() == challenge['answer'].lower():
-                elapsed = time.time() - start_time
-                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
-                if 'explanation' in challenge:
-                    print(f"Explanation: {challenge['explanation']}")
-                return GameResult(True, elapsed, attempts)
-            else:
-                print("Incorrect! Try again.")
+        return self._run_coding_challenge(challenge)
     
     def bug_hunt_challenge(self) -> GameResult:
-        """Find and fix bugs in Java code"""
-        bugs = [
-            {
-                "description": "Fix this class declaration",
-                "buggy_code": "public Class MyClass {",
-                "fixed_code": "public class MyClass {",
-                "explanation": "'class' keyword should be lowercase"
-            },
-            {
-                "description": "Fix this method call",
-                "buggy_code": "String str = \"hello\";\nint len = str.Length();",
-                "fixed_code": "String str = \"hello\";\nint len = str.length();",
-                "explanation": "Method name is length(), not Length()"
-            },
-            {
-                "description": "Fix this array declaration",
-                "buggy_code": "int arr[] = new int(5);",
-                "fixed_code": "int arr[] = new int[5];",
-                "explanation": "Use square brackets for array size, not parentheses"
-            },
-            {
-                "description": "Fix this comparison",
-                "buggy_code": "String a = \"hello\";\nif (a == \"hello\")",
-                "fixed_code": "String a = \"hello\";\nif (a.equals(\"hello\"))",
-                "explanation": "Use equals() to compare strings, not == operator"
-            },
-            {
-                "description": "Fix this constructor",
-                "buggy_code": "public void MyClass() { }",
-                "fixed_code": "public MyClass() { }",
-                "explanation": "Constructor should not have return type"
-            },
-            {
-                "description": "Fix this interface implementation",
-                "buggy_code": "class MyClass extends Runnable",
-                "fixed_code": "class MyClass implements Runnable",
-                "explanation": "Use 'implements' for interfaces, 'extends' for classes"
-            }
-        ]
-        
-        bug = random.choice(bugs)
-        print(f"\nBug Hunt: {bug['description']}")
-        print("Buggy code:")
-        print(f"  {bug['buggy_code']}")
-        print("\nWrite the fixed version:")
-        
-        attempts = 0
-        start_time = time.time()
-        time_limit = self.get_time_limit()
-        
-        while True:
-            attempts += 1
-            elapsed = time.time() - start_time
-            remaining = time_limit - elapsed
-            
-            if remaining <= 0:
-                print(f"\nTime's up!")
-                print(f"Fixed code: {bug['fixed_code']}")
-                print(f"Explanation: {bug['explanation']}")
-                return GameResult(False, elapsed, attempts)
-            
-            print(f"\nTime remaining: {remaining:.1f}s")
-            user_input = input("Your fixed code: ").strip()
-            
-            # Normalize spaces for comparison
-            user_normalized = ' '.join(user_input.split()).lower()
-            fixed_normalized = ' '.join(bug['fixed_code'].split()).lower()
-            
-            if user_normalized == fixed_normalized:
-                elapsed = time.time() - start_time
-                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
-                print(f"Explanation: {bug['explanation']}")
-                return GameResult(True, elapsed, attempts)
-            else:
-                print("Not quite right. Try again!")
-    
-    def code_completion_challenge(self) -> GameResult:
-        """Complete missing parts of Java code"""
+        """Find and fix complex bugs in Java code"""
         challenges = [
             {
-                "description": "Complete this class declaration to extend Thread",
-                "code": "public class MyThread ___ Thread {",
-                "answer": "extends",
-                "alternatives": ["extends"],
-                "explanation": "Use 'extends' to inherit from a class"
+                "title": "Memory Leak and Concurrency Bug Hunt",
+                "description": """
+Fix all bugs in this event management system:
+
+```java
+public class EventManager {
+    private static List<EventListener> listeners = new ArrayList<>();
+    private Map<String, Object> cache = new HashMap<>();
+    
+    public void addListener(EventListener listener) {
+        listeners.add(listener);
+    }
+    
+    public void removeListener(EventListener listener) {
+        // Bug: listeners list is never cleaned up
+        listeners.remove(listener);
+    }
+    
+    public void processEvent(String event) {
+        for(EventListener listener : listeners) {
+            new Thread(() -> {
+                listener.onEvent(event);
+                cache.put(event, new LargeObject());
+            }).start();
+        }
+    }
+    
+    public Object getCached(String key) {
+        return cache.get(key);
+    }
+}
+```
+
+Identify and fix: memory leaks, thread safety issues, resource management problems.
+                """,
+                "hints": [
+                    "ArrayList is not thread-safe - use ConcurrentLinkedQueue or synchronize",
+                    "HashMap is not thread-safe - use ConcurrentHashMap",
+                    "Creating threads in loop is expensive - use ExecutorService", 
+                    "Cache grows indefinitely - implement size limit or TTL",
+                    "No way to clean up listeners properly - use WeakReference"
+                ],
+                "expected_patterns": [
+                    "ConcurrentLinkedQueue<EventListener>",
+                    "ConcurrentHashMap<String, Object>",
+                    "ExecutorService",
+                    "WeakReference",
+                    "synchronized",
+                    "cache.size()",
+                    "executor.submit("
+                ],
+                "validation_keywords": ["thread-safe", "ConcurrentHashMap", "ExecutorService", "memory", "synchronized"]
             },
             {
-                "description": "Complete this method to override toString",
-                "code": "___\npublic String toString() { return \"MyClass\"; }",
-                "answer": "@Override",
-                "alternatives": ["@Override"],
-                "explanation": "@Override annotation indicates method overriding"
-            },
-            {
-                "description": "Complete this generic method declaration",
-                "code": "public ___ <T> T getValue() { return value; }",
-                "answer": "static",
-                "alternatives": ["static", "final"],
-                "explanation": "Generic methods often need 'static' or access modifiers"
-            },
-            {
-                "description": "Complete this lambda expression for filtering even numbers",
-                "code": "list.stream().filter(___ -> ___ % 2 == 0)",
-                "answer": "x -> x",
-                "alternatives": ["x -> x", "n -> n", "num -> num"],
-                "explanation": "Lambda parameter name matches usage in expression"
-            },
-            {
-                "description": "Complete this try-catch block",
-                "code": "try {\n    int result = 10/0;\n} ___ (ArithmeticException e) {\n    System.out.println(\"Error\");\n}",
-                "answer": "catch",
-                "alternatives": ["catch"],
-                "explanation": "Use 'catch' to handle exceptions"
+                "title": "Exception Handling and Resource Leak Bugs",
+                "description": """
+Fix the resource management and exception handling bugs:
+
+```java
+public class FileProcessor {
+    public String processFile(String filename) throws IOException {
+        FileInputStream fis = new FileInputStream(filename);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
+        StringBuilder content = new StringBuilder();
+        String line;
+        
+        while((line = reader.readLine()) != null) {
+            if(line.contains("ERROR")) {
+                throw new RuntimeException("Error found in file");
+            }
+            content.append(line);
+        }
+        
+        reader.close();
+        return content.toString();
+    }
+    
+    public void batchProcess(List<String> files) {
+        for(String file : files) {
+            try {
+                processFile(file);
+            } catch(IOException e) {
+                continue; // Bug: swallowing exceptions
+            }
+        }
+    }
+}
+```
+
+Fix: resource leaks, improper exception handling, missing cleanup.
+                """,
+                "hints": [
+                    "Use try-with-resources for automatic resource management",
+                    "Don't swallow exceptions - log them or rethrow as appropriate",
+                    "Resources not closed if exception occurs before close()",
+                    "RuntimeException bypasses IOException handling",
+                    "Use Files.readAllLines() or similar for cleaner code"
+                ],
+                "expected_patterns": [
+                    "try(FileInputStream fis = new FileInputStream(filename);",
+                    "try(BufferedReader reader =",
+                    "catch(IOException e) {",
+                    "logger.error(",
+                    "finally {",
+                    "Files.readAllLines("
+                ],
+                "validation_keywords": ["try-with-resources", "finally", "logger", "exception", "resource", "cleanup"]
             }
         ]
         
         challenge = random.choice(challenges)
-        print(f"\nCode Completion Challenge:")
-        print(f"{challenge['description']}")
-        print("\nCode:")
-        print(challenge['code'])
-        print(f"\nFill in the blank(s)")
+        print(f"\n🎯 {challenge['title']}")
+        print("=" * 50)
+        print(challenge['description'])
+        print("\n🔧 Rewrite the code fixing all identified bugs:")
+        print("(Type 'hint' for a hint, 'done' when finished)")
         
+        return self._run_coding_challenge(challenge)
+    
+    def advanced_features_challenge(self) -> GameResult:
+        """Advanced Java features and modern capabilities"""
+        challenges = [
+            {
+                "title": "Annotation Processing and Reflection Magic",
+                "description": """
+Create a dependency injection framework using annotations and reflection:
+1. Annotations: @Injectable, @Inject, @Singleton
+2. Class 'DIContainer' that scans classes and creates instances
+3. Method register(Class<?> clazz) - registers class for injection
+4. Method <T> T getInstance(Class<T> clazz) - returns instance with dependencies injected
+5. Support constructor injection and field injection
+6. Handle circular dependencies detection
+7. Implement singleton lifecycle management
+
+Build a mini-framework showing reflection and annotation processing.
+                """,
+                "hints": [
+                    "Use @Retention(RetentionPolicy.RUNTIME) for annotations",
+                    "Class.getDeclaredConstructors() to find constructors",
+                    "Constructor.getParameterTypes() for dependency types",
+                    "Field.setAccessible(true) before setting private fields",
+                    "Map<Class<?>, Object> to store singleton instances"
+                ],
+                "expected_patterns": [
+                    "@Retention(RetentionPolicy.RUNTIME)",
+                    "@interface Injectable",
+                    "@interface Inject",
+                    "class DIContainer",
+                    "Class.getDeclaredConstructors()",
+                    "field.setAccessible(true)",
+                    "Map<Class<?>, Object>",
+                    "constructor.newInstance("
+                ],
+                "validation_keywords": ["annotation", "reflection", "Injectable", "Inject", "getDeclaredConstructors", "newInstance"]
+            },
+            {
+                "title": "CompletableFuture Pipeline with Custom Executors",
+                "description": """
+Build an asynchronous processing pipeline using CompletableFuture:
+1. Class 'AsyncPipeline<T, R>' for chaining async operations
+2. Custom executors: IO-bound, CPU-bound, scheduled operations
+3. Methods: stage(), parallel(), timeout(), fallback(), collect()
+4. Error handling and retry mechanisms with exponential backoff
+5. Demonstrate with file processing: read -> validate -> transform -> save
+6. Include monitoring and metrics collection for pipeline performance
+
+Show advanced async programming with proper resource management.
+                """,
+                "hints": [
+                    "Use Executors.newFixedThreadPool() for different executor types",
+                    "CompletableFuture.supplyAsync() for starting async chains",
+                    "thenComposeAsync() for chaining async operations",
+                    "CompletableFuture.allOf() for parallel execution",
+                    "orTimeout() and completeOnTimeout() for timeout handling"
+                ],
+                "expected_patterns": [
+                    "class AsyncPipeline<T, R>",
+                    "CompletableFuture<T>",
+                    "ExecutorService",
+                    "supplyAsync(",
+                    "thenComposeAsync(",
+                    "CompletableFuture.allOf(",
+                    "orTimeout(",
+                    "exceptionally("
+                ],
+                "validation_keywords": ["CompletableFuture", "async", "ExecutorService", "pipeline", "timeout", "exceptionally"]
+            }
+        ]
+        
+        challenge = random.choice(challenges)
+        print(f"\n🎯 {challenge['title']}")
+        print("=" * 50)
+        print(challenge['description'])
+        print("\n📝 Write your complete Java implementation:")
+        print("(Type 'hint' for a hint, 'done' when finished)")
+        
+        return self._run_coding_challenge(challenge)
+    
+    def _run_coding_challenge(self, challenge: Dict[str, Any]) -> GameResult:
+        """Common logic for running coding challenges"""
+        user_code = ""
+        hints_used = 0
         attempts = 0
         start_time = time.time()
         time_limit = self.get_time_limit()
         
         while True:
-            attempts += 1
             elapsed = time.time() - start_time
             remaining = time_limit - elapsed
             
             if remaining <= 0:
-                print(f"\nTime's up! Answer: {challenge['answer']}")
-                print(f"Explanation: {challenge['explanation']}")
-                return GameResult(False, elapsed, attempts)
+                print(f"\n⏰ Time's up!")
+                print("Here's what your solution should include:")
+                for pattern in challenge['expected_patterns'][:3]:
+                    print(f"  - {pattern}")
+                return GameResult(False, elapsed, attempts, hints_used)
             
-            print(f"\nTime remaining: {remaining:.1f}s")
-            user_input = input("Your answer: ").strip()
+            print(f"\n⏱️  Time remaining: {remaining:.1f}s")
+            line = input(">>> ").strip()
             
-            # Check if answer matches any of the alternatives
-            correct = any(user_input.lower().replace(" ", "") == alt.lower().replace(" ", "") 
-                         for alt in challenge['alternatives'])
-            
-            if correct:
-                elapsed = time.time() - start_time
-                print(f"\nCorrect! Time: {elapsed:.2f}s, Attempts: {attempts}")
-                print(f"Explanation: {challenge['explanation']}")
-                return GameResult(True, elapsed, attempts)
+            if line.lower() == 'hint':
+                hints_used = self.show_hint(challenge['hints'], hints_used)
+                continue
+            elif line.lower() == 'done':
+                attempts += 1
+                break
             else:
-                print("Incorrect! Try again.")
+                user_code += line + "\n"
+        
+        # Validate the solution
+        pattern_matches = sum(1 for pattern in challenge['expected_patterns'] 
+                            if self.normalize_code(pattern) in self.normalize_code(user_code))
+        keyword_matches = sum(1 for keyword in challenge['validation_keywords']
+                            if keyword.lower() in user_code.lower())
+        
+        total_checks = len(challenge['expected_patterns']) + len(challenge['validation_keywords'])
+        total_matches = pattern_matches + keyword_matches
+        score_percentage = (total_matches / total_checks) * 100
+        
+        elapsed = time.time() - start_time
+        
+        if score_percentage >= 70:  # 70% threshold for success
+            print(f"\n✅ Excellent implementation! Score: {score_percentage:.1f}%")
+            print(f"Pattern matches: {pattern_matches}/{len(challenge['expected_patterns'])}")
+            print(f"Keyword matches: {keyword_matches}/{len(challenge['validation_keywords'])}")
+            return GameResult(True, elapsed, attempts, hints_used)
+        else:
+            print(f"\n❌ Implementation needs work. Score: {score_percentage:.1f}%")
+            print(f"Pattern matches: {pattern_matches}/{len(challenge['expected_patterns'])}")
+            print(f"Missing key patterns:")
+            for pattern in challenge['expected_patterns']:
+                if self.normalize_code(pattern) not in self.normalize_code(user_code):
+                    print(f"  - {pattern}")
+            return GameResult(False, elapsed, attempts, hints_used)
     
     def show_stats(self):
-        """Show game statistics"""
+        """Show comprehensive game statistics"""
         if self.total_games == 0:
             accuracy = 0
         else:
             accuracy = (self.score / self.total_games) * 100
         
-        print(f"\n=== GAME STATISTICS ===")
+        print(f"\n=== JAVA MASTERY STATISTICS ===")
         print(f"Total Score: {self.score}")
         print(f"Games Played: {self.total_games}")
         print(f"Accuracy: {accuracy:.1f}%")
+        print(f"Total Hints Used: {self.hints_used_total}")
         print(f"Current Difficulty: {self.difficulty.value}")
         
-        # Fun Java-related messages based on performance
-        if accuracy >= 90:
-            print("☕ Java Master! You've achieved true object-oriented enlightenment!")
-        elif accuracy >= 80:
-            print("🚀 Senior Java Developer level! Your polymorphism skills are strong!")
+        # Calculate mastery level
+        if accuracy >= 90 and self.hints_used_total / max(1, self.total_games) < 2:
+            level = "🏆 Java Architect - Master of Enterprise Patterns!"
+        elif accuracy >= 80 and self.difficulty.value in ['hard', 'nightmare']:
+            level = "🚀 Senior Java Engineer - Advanced OOP Specialist!"
         elif accuracy >= 70:
-            print("📈 Solid Java knowledge! You understand the fundamentals well!")
+            level = "💼 Java Developer - Solid Foundation Builder!"
         elif accuracy >= 60:
-            print("💡 Good progress! Your Java journey is well underway!")
+            level = "📈 Java Apprentice - Growing Strong!"
         elif accuracy >= 50:
-            print("📚 Learning well! Keep practicing those OOP concepts!")
+            level = "💡 Java Student - Learning the Craft!"
         else:
-            print("🌱 Java seedling! Every expert was once a beginner. Keep coding!")
+            level = "🌱 Java Beginner - Every Expert Started Here!"
+        
+        print(f"\nMastery Level: {level}")
+        
+        if self.total_games > 0:
+            avg_hints = self.hints_used_total / self.total_games
+            print(f"Average Hints per Game: {avg_hints:.1f}")
+            
+            if avg_hints < 1:
+                print("💪 Impressive! You're solving challenges with minimal help!")
+            elif avg_hints < 2:
+                print("👍 Good problem-solving skills with occasional guidance!")
+            else:
+                print("📚 Keep practicing! The hints are helping you learn!")
         
         input("\nPress Enter to continue...")
     
     def update_score(self, result: GameResult):
-        """Update score based on game result"""
+        """Update score based on comprehensive performance metrics"""
         self.total_games += 1
+        self.hints_used_total += result.hints_used
+        
         if result.correct:
-            # Bonus points for speed and fewer attempts
-            time_bonus = max(0, int(15 - result.time_taken))
-            attempt_bonus = max(0, 8 - result.attempts)
-            difficulty_bonus = list(Difficulty).index(self.difficulty) * 2
+            # Base points for correct solution
+            base_points = 100
             
-            points = 15 + time_bonus + attempt_bonus + difficulty_bonus
-            self.score += points
-            print(f"You earned {points} points!")
+            # Time bonus (up to 50 points)
+            time_limit = self.get_time_limit()
+            time_bonus = max(0, int(50 * (time_limit - result.time_taken) / time_limit))
+            
+            # Attempt bonus (fewer attempts = more points)
+            attempt_bonus = max(0, 30 - (result.attempts - 1) * 10)
+            
+            # Hint penalty (using hints reduces score)
+            hint_penalty = result.hints_used * 20
+            
+            # Difficulty multiplier
+            difficulty_multiplier = {
+                Difficulty.NOOB: 1.0,
+                Difficulty.EASY: 1.2,
+                Difficulty.MEDIUM: 1.5,
+                Difficulty.HARD: 2.0,
+                Difficulty.NIGHTMARE: 3.0
+            }[self.difficulty]
+            
+            total_points = int((base_points + time_bonus + attempt_bonus - hint_penalty) * difficulty_multiplier)
+            total_points = max(10, total_points)  # Minimum 10 points for correct solution
+            
+            self.score += total_points
+            
+            print(f"\n🎉 Challenge completed! You earned {total_points} points!")
+            print(f"  Base points: {base_points}")
             if time_bonus > 0:
                 print(f"  Speed bonus: +{time_bonus}")
             if attempt_bonus > 0:
                 print(f"  Accuracy bonus: +{attempt_bonus}")
-            if difficulty_bonus > 0:
-                print(f"  Difficulty bonus: +{difficulty_bonus}")
+            if hint_penalty > 0:
+                print(f"  Hint penalty: -{hint_penalty}")
+            print(f"  Difficulty multiplier: x{difficulty_multiplier}")
+            
+            # Motivational messages based on performance
+            if result.hints_used == 0 and result.attempts == 1:
+                print("🔥 FLAWLESS EXECUTION! You're a Java virtuoso!")
+            elif result.hints_used <= 1:
+                print("⭐ Excellent work! Minimal assistance needed!")
+            elif result.time_taken < self.get_time_limit() * 0.5:
+                print("⚡ Lightning fast! Your fingers are on fire!")
         else:
-            print("No points this time. Java mastery takes practice!")
+            print("💪 Challenge not completed, but every attempt builds expertise!")
+            print("Keep coding! The path to mastery requires persistence!")
     
     def run(self):
-        """Main game loop"""
+        """Main game loop with enhanced experience"""
         games = {
-            "1": self.oop_concepts_challenge,
+            "1": self.class_implementation_challenge,
             "2": self.collections_challenge,
             "3": self.exception_handling_challenge,
             "4": self.inheritance_polymorphism_challenge,
             "5": self.interfaces_abstract_challenge,
-            "6": self.java_syntax_quiz,
-            "7": self.generics_challenge,
-            "8": self.lambda_streams_challenge,
-            "9": self.design_patterns_challenge,
+            "6": self.generics_challenge,
+            "7": self.lambda_streams_challenge,
+            "8": self.design_patterns_challenge,
+            "9": self.algorithm_challenge,
             "10": self.bug_hunt_challenge,
-            "11": self.code_completion_challenge,
+            "11": self.advanced_features_challenge,
         }
         
-        print("Welcome to Java Be Good!")
-        print("Master the art of Object-Oriented Programming!")
-        print("From basic syntax to advanced design patterns - level up your Java skills!")
-        print("\n☕ 'Write once, run anywhere' - and code anywhere too! ☕")
+        print("🎯 Welcome to Java Be Good - Technical Coding Edition!")
+        print("═" * 60)
+        print("Master Java through hands-on coding challenges!")
+        print("Write real code, solve complex problems, build expertise!")
+        print("\n💡 Pro Tips:")
+        print("  • Type 'hint' during any challenge for guidance")
+        print("  • Type 'done' when you've finished your implementation")
+        print("  • Focus on clean, well-structured code")
+        print("  • Challenge yourself with higher difficulties!")
+        print("\n☕ 'The best way to learn Java is to write Java!' ☕")
         
         while True:
             self.clear_screen()
@@ -1219,20 +1287,21 @@ class JavaBeGood:
             choice = self.show_menu()
             
             if choice == "q":
-                print("\nThanks for playing Java Be Good!")
-                print(f"Final Score: {self.score} | Games Played: {self.total_games}")
-                print("May your code be bug-free and your objects well-encapsulated! ☕🚀")
+                print("\n🎓 Thanks for coding with Java Be Good!")
+                print(f"Final Score: {self.score} | Challenges Completed: {self.total_games}")
+                print("Your Java journey continues! Keep building amazing software! ☕🚀")
                 break
             elif choice == "12":
                 self.set_difficulty()
             elif choice == "13":
                 self.show_stats()
             elif choice in games:
-                print(f"\nStarting Java challenge... Prepare to think in objects! 💭")
+                print(f"\n🚀 Initializing challenge environment...")
+                print("Get ready to code like a pro! 💻")
                 time.sleep(2)
                 result = games[choice]()
                 self.update_score(result)
-                input("\nPress Enter to continue...")
+                input("\nPress Enter to return to main menu...")
             
             time.sleep(1)
 
@@ -1241,7 +1310,7 @@ if __name__ == "__main__":
     try:
         game.run()
     except KeyboardInterrupt:
-        print("\n\nGame interrupted. Thanks for playing Java Be Good!")
+        print("\n\n🛑 Game interrupted. Thanks for coding with Java Be Good!")
     except Exception as e:
-        print(f"\nAn error occurred: {e}")
+        print(f"\n💥 An error occurred: {e}")
         print("Thanks for playing Java Be Good!")
